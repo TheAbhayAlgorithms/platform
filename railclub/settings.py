@@ -13,7 +13,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver,.vercel.app', cast=Csv())
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://*.vercel.app,http://127.0.0.1,http://localhost', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -41,7 +42,12 @@ INSTALLED_APPS = [
     'transfers.apps.TransfersConfig',
 ]
 
-BACKUP_STORAGE_DIR = BASE_DIR / 'backups_storage'
+IS_VERCEL = config('VERCEL', default=False, cast=bool)
+if IS_VERCEL:
+    BACKUP_STORAGE_DIR = Path('/tmp/backups_storage')
+else:
+    BACKUP_STORAGE_DIR = BASE_DIR / 'backups_storage'
+
 BACKUP_RETENTION_DAYS = 30
 
 
@@ -81,13 +87,40 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'railclub.wsgi.application'
 
-# Database configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration (Local SQLite default, Supabase/PostgreSQL when DATABASE_URL is provided)
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                ssl_require=True
+            )
+        }
+    except ImportError:
+        import urllib.parse as urlparse
+        url = urlparse.urlparse(DATABASE_URL)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': url.path[1:],
+                'USER': url.username,
+                'PASSWORD': url.password,
+                'HOST': url.hostname,
+                'PORT': url.port or '5432',
+                'OPTIONS': {'sslmode': 'require'},
+            }
+        }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
 
 # Password hashing: Argon2 is primary
 PASSWORD_HASHERS = [
@@ -132,7 +165,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path('/tmp/media') if IS_VERCEL else BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit {{ facility.name }}{% else %}Add New Facility{% endif %} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if is_edit %}Edit Facility: {{ facility.name }}{% else %}Add New Facility / Hall{% endif %}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Configure hall dimensions, member pricing, security deposit, and operational status.
+        </p>
+    </div>
+    <a href="{% url 'bookings:facility_list' %}" class="btn btn-secondary">&larr; Back to Facilities</a>
+</div>
+
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_name" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Facility Name:</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_facility_type" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Type:</label>
+                {{ form.facility_type }}
+                {% if form.facility_type.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.facility_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_capacity" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Guest Capacity:</label>
+                {{ form.capacity }}
+                {% if form.capacity.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.capacity.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_rent_per_slot" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Slot Rent (Half Day) (₹):</label>
+                {{ form.rent_per_slot }}
+                {% if form.rent_per_slot.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.rent_per_slot.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_full_day_rent" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Full Day Rent (₹):</label>
+                {{ form.full_day_rent }}
+                {% if form.full_day_rent.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.full_day_rent.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_security_deposit" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Security Deposit (Refundable) (₹):</label>
+                {{ form.security_deposit }}
+                {% if form.security_deposit.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.security_deposit.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_flat_electricity_charge" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Electricity / Generator (₹):</label>
+                {{ form.flat_electricity_charge }}
+                {% if form.flat_electricity_charge.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.flat_electricity_charge.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_description" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Description &amp; Amenities:</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.description.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                {{ form.is_active }} Active &amp; Available for Booking
+            </label>
+            {% if form.is_active.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.is_active.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                {% if is_edit %}Save Changes{% else %}Create Facility{% endif %}
+            </button>
+            <a href="{% url 'bookings:facility_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

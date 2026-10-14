@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Wedding & Hall Bookings - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Wedding &amp; Hall Bookings</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Reservations for wedding halls, banquet lawns, conference rooms, and open grounds.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <a href="{% url 'bookings:facility_list' %}" class="btn btn-secondary">&equiv; Facilities Directory</a>
+            <a href="{% url 'bookings:booking_create' %}" class="btn btn-primary">+ New Hall Booking</a>
+        {% endif %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="?status=&facility={{ facility_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if not status_filter %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Bookings</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?status=CONFIRMED&facility={{ facility_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'CONFIRMED' %}border-color: #15803d; background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Confirmed</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">{{ counts.confirmed }}</div>
+        </div>
+    </a>
+    <a href="?status=REQUESTED&facility={{ facility_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'REQUESTED' %}border-color: #d97706; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #d97706; font-weight: 600;">Pending Approval</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #d97706; margin-top: 0.25rem;">{{ counts.requested }}</div>
+        </div>
+    </a>
+    <a href="?status=COMPLETED&facility={{ facility_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'COMPLETED' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.85rem; color: #0284c7; font-weight: 600;">Completed</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">{{ counts.completed }}</div>
+        </div>
+    </a>
+    <a href="?status=CANCELLED&facility={{ facility_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'CANCELLED' %}border-color: #ef4444; background: #fef2f2;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b91c1c; font-weight: 600;">Cancelled</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">{{ counts.cancelled }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="q" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Search Bookings:</label>
+            <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="Booking ID, member name, membership ID, or purpose..." class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="facility" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Facility:</label>
+            <select id="facility" name="facility" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Facilities --</option>
+                {% for fac in facilities %}
+                    <option value="{{ fac.id }}" {% if facility_filter == fac.id|stringformat:"s" %}selected{% endif %}>{{ fac.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="status" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Status:</label>
+            <select id="status" name="status" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Statuses --</option>
+                {% for s_val, s_label in status_choices %}
+                    <option value="{{ s_val }}" {% if status_filter == s_val %}selected{% endif %}>{{ s_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem;">Filter</button>
+            {% if search_query or status_filter or facility_filter %}
+                <a href="{% url 'bookings:booking_list' %}" class="btn btn-secondary" style="padding: 0.45rem 0.75rem;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Bookings Table -->
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Booking ID</th>
+                    <th style="padding: 0.75rem 0.5rem;">Member</th>
+                    <th style="padding: 0.75rem 0.5rem;">Facility</th>
+                    <th style="padding: 0.75rem 0.5rem;">Date &amp; Slot</th>
+                    <th style="padding: 0.75rem 0.5rem;">Event Type</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Total / Deposit</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in page_obj %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong><a href="{% url 'bookings:booking_detail' b.id %}">{{ b.booking_id }}</a></strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ b.booked_at|date:"d-m-Y" }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <a href="{% url 'members:member_detail' b.member.id %}"><strong>{{ b.member.name }}</strong></a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">ID: {{ b.member.membership_id }} &bull; {{ b.member.mobile_number }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ b.facility.name }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Cap: {{ b.facility.capacity }} &bull; {{ b.facility.get_facility_type_display }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ b.booking_date|date:"d-m-Y" }}</strong>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #4b5563;">{{ b.get_slot_display }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ b.get_event_type_display }}</span>
+                        {% if b.purpose %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.purpose }}">{{ b.purpose }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                        <strong>₹{{ b.total_amount|floatformat:2 }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Dep: ₹{{ b.deposit_amount|floatformat:2 }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if b.status == 'CONFIRMED' %}
+                            <span class="badge badge-active">Confirmed</span>
+                        {% elif b.status == 'REQUESTED' %}
+                            <span class="badge badge-due">Pending Approval</span>
+                        {% elif b.status == 'COMPLETED' %}
+                            <span class="badge badge-neutral">Completed</span>
+                        {% elif b.status == 'CANCELLED' %}
+                            <span class="badge badge-expired">Cancelled</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ b.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'bookings:booking_detail' b.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">View</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No hall bookings found matching the selected filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&facility={{ facility_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&larr; Previous</a>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&facility={{ facility_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

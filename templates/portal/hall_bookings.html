@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Hall & Lawn Reservations - Member Portal - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Institute Hall &amp; Lawn Reservations</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Subsidized booking of community halls, wedding lawns, and conference rooms for railway employees and families.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'portal:dashboard' %}" class="btn btn-secondary">&larr; My Membership</a>
+    </div>
+</div>
+
+<!-- Facilities & Tariff Overview -->
+<div style="margin-bottom: 2rem;">
+    <h2 style="font-size: 1.15rem; margin-bottom: 0.75rem;">Available Facilities &amp; Subsidized Member Tariffs</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        {% for f in facilities %}
+        <div class="card" style="padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <h3 style="font-size: 1.05rem; margin: 0; color: #1e3a8a;">{{ f.name }}</h3>
+                <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ f.get_facility_type_display }}</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">{{ f.description|default:"Main campus community facility." }}</p>
+            <table style="width: 100%; font-size: 0.85rem; border-top: 1px solid #f3f4f6;">
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0;">Capacity:</td>
+                    <td style="text-align: right; font-weight: 600;">{{ f.capacity }} Guests</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0;">Member Rent:</td>
+                    <td style="text-align: right; font-weight: bold; color: #15803d;">₹{{ f.rent_member|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0;">Security Deposit:</td>
+                    <td style="text-align: right;">₹{{ f.security_deposit|floatformat:2 }} (Refundable)</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0;">Electricity/Cleaning:</td>
+                    <td style="text-align: right;">₹{{ f.electricity_charges|floatformat:2 }}</td>
+                </tr>
+            </table>
+        </div>
+        {% empty %}
+        <div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">
+            No facilities currently listed.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 1.5rem; align-items: start;">
+    <!-- New Booking Request Form -->
+    <div class="card">
+        <h2>Submit Reservation Request</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Select your venue, date, and preferred slot. Bookings are confirmed upon office approval and payment of advance.
+        </p>
+        <form method="post" action="{% url 'bookings:portal_request' %}">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_facility" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Select Venue / Hall:</label>
+                {{ form.facility }}
+                {% if form.facility.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.facility.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                <div>
+                    <label for="id_booking_date" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Event Date:</label>
+                    {{ form.booking_date }}
+                    {% if form.booking_date.errors %}
+                        <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.booking_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="id_slot" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Time Slot:</label>
+                    {{ form.slot }}
+                    {% if form.slot.errors %}
+                        <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.slot.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_event_type" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Event Occasion:</label>
+                {{ form.event_type }}
+                {% if form.event_type.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.event_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_purpose" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Purpose / Event Description:</label>
+                {{ form.purpose }}
+                {% if form.purpose.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.purpose.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label for="id_special_requests" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Special Arrangements (Audio, Seating, Catering):</label>
+                {{ form.special_requests }}
+                {% if form.special_requests.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.special_requests.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Submit Reservation Request
+            </button>
+        </form>
+    </div>
+
+    <!-- My Booking History -->
+    <div class="card">
+        <h2>My Reservations</h2>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                        <th style="padding: 0.6rem 0.5rem;">Booking</th>
+                        <th style="padding: 0.6rem 0.5rem;">Venue &amp; Date</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: right;">Total Amount</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: center;">Status</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 0.6rem 0.5rem;">
+                            <strong>{{ b.booking_id }}</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">{{ b.get_event_type_display }}</span>
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem;">
+                            <strong>{{ b.facility.name }}</strong><br>
+                            {{ b.booking_date|date:"d-m-Y" }} ({{ b.get_slot_display }})
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem; text-align: right;">
+                            <strong>₹{{ b.total_amount|floatformat:2 }}</strong><br>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Dep: ₹{{ b.deposit_amount|floatformat:2 }}</span>
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                            {% if b.status == 'CONFIRMED' %}
+                                <span class="badge badge-active">Confirmed</span>
+                            {% elif b.status == 'REQUESTED' %}
+                                <span class="badge badge-due">Pending</span>
+                            {% elif b.status == 'COMPLETED' %}
+                                <span class="badge badge-neutral">Completed</span>
+                            {% elif b.status == 'CANCELLED' %}
+                                <span class="badge badge-expired">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.6rem 0.5rem; text-align: center;">
+                            {% if b.status != 'CANCELLED' and b.status != 'COMPLETED' %}
+                            <form method="post" action="{% url 'bookings:portal_cancel' b.id %}" onsubmit="return confirm('Cancel this reservation request?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; color: #b91c1c;">Cancel</button>
+                            </form>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.75rem;">&mdash;</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            You have no hall reservation requests yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     'notifications.apps.NotificationsConfig',
     'reports.apps.ReportsConfig',
     'events.apps.EventsConfig',
+    'bookings.apps.BookingsConfig',
 ]
+
 
 
 

@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Booking {{ booking.booking_id }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1>Booking {{ booking.booking_id }}</h1>
+            {% if booking.status == 'CONFIRMED' %}
+                <span class="badge badge-active">Confirmed</span>
+            {% elif booking.status == 'REQUESTED' %}
+                <span class="badge badge-due">Pending Approval</span>
+            {% elif booking.status == 'COMPLETED' %}
+                <span class="badge badge-neutral">Completed</span>
+            {% elif booking.status == 'CANCELLED' %}
+                <span class="badge badge-expired">Cancelled</span>
+            {% else %}
+                <span class="badge badge-neutral">{{ booking.get_status_display }}</span>
+            {% endif %}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Reserved on {{ booking.booked_at|date:"d M Y, h:i A" }}
+            {% if booking.approved_by %}
+                &bull; Approved by <strong>{{ booking.approved_by.username }}</strong>
+            {% endif %}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'bookings:booking_list' %}" class="btn btn-secondary">&larr; Bookings Directory</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Details & Schedule -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Facility & Event Schedule -->
+        <div class="card">
+            <h2>Facility &amp; Event Schedule</h2>
+            <table style="width: 100%; font-size: 0.9rem;">
+                <tr>
+                    <th style="width: 35%;">Facility / Venue</th>
+                    <td><strong>{{ booking.facility.name }}</strong> ({{ booking.facility.get_facility_type_display }})</td>
+                </tr>
+                <tr>
+                    <th>Location / Address</th>
+                    <td>{{ booking.facility.location|default:"Institute Main Campus" }}</td>
+                </tr>
+                <tr>
+                    <th>Guest Capacity</th>
+                    <td>Up to <strong>{{ booking.facility.capacity }}</strong> guests</td>
+                </tr>
+                <tr>
+                    <th>Event Date</th>
+                    <td><strong style="color: #1e3a8a; font-size: 1.05rem;">{{ booking.booking_date|date:"l, d F Y" }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Time Slot</th>
+                    <td><span class="badge badge-neutral">{{ booking.get_slot_display }}</span></td>
+                </tr>
+                <tr>
+                    <th>Event Category</th>
+                    <td><strong>{{ booking.get_event_type_display }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Event Purpose / Note</th>
+                    <td>{{ booking.purpose }}</td>
+                </tr>
+                {% if booking.special_requests %}
+                <tr>
+                    <th>Special Requests</th>
+                    <td style="color: #4b5563;">{{ booking.special_requests|linebreaksbr }}</td>
+                </tr>
+                {% endif %}
+                {% if booking.cancellation_reason %}
+                <tr style="background: #fef2f2;">
+                    <th style="color: #b91c1c;">Cancellation Reason</th>
+                    <td style="color: #b91c1c;"><strong>{{ booking.cancellation_reason }}</strong> (on {{ booking.cancelled_at|date:"d-m-Y" }})</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Member Information -->
+        <div class="card">
+            <h2>Railway Member Details</h2>
+            <table style="width: 100%; font-size: 0.9rem;">
+                <tr>
+                    <th style="width: 35%;">Member Name</th>
+                    <td>
+                        <a href="{% url 'members:member_detail' booking.member.id %}"><strong>{{ booking.member.name }}</strong></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Membership ID</th>
+                    <td><code>{{ booking.member.membership_id }}</code></td>
+                </tr>
+                <tr>
+                    <th>Department &amp; Designation</th>
+                    <td>{{ booking.member.get_department_display }} &bull; {{ booking.member.designation|default:"Staff" }}</td>
+                </tr>
+                <tr>
+                    <th>Mobile &amp; WhatsApp</th>
+                    <td>{{ booking.member.mobile_number }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Security Deposit Audit -->
+        <div class="card">
+            <h2>Security Deposit Audit</h2>
+            <table style="width: 100%; font-size: 0.9rem;">
+                <tr>
+                    <th style="width: 35%;">Deposit Collected</th>
+                    <td><strong>₹{{ booking.deposit_amount|floatformat:2 }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Refund Status</th>
+                    <td>
+                        {% if booking.deposit_refunded %}
+                            <span class="badge badge-active">Refunded (₹{{ booking.deposit_refund_amount|floatformat:2 }})</span>
+                        {% else %}
+                            <span class="badge badge-due">Pending Inspection &amp; Refund</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if booking.deposit_refunded %}
+                <tr>
+                    <th>Refund Date</th>
+                    <td>{{ booking.deposit_refund_date|date:"d-m-Y" }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Financials & Staff Actions -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Financial Card -->
+        <div class="card">
+            <h2>Financial Breakdown</h2>
+            <table style="width: 100%; font-size: 0.9rem; margin-bottom: 1rem;">
+                <tr>
+                    <th style="width: 50%;">Hall Rent</th>
+                    <td style="text-align: right;">₹{{ booking.rent_amount|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Security Deposit</th>
+                    <td style="text-align: right;">₹{{ booking.deposit_amount|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Electricity / Cleaning</th>
+                    <td style="text-align: right;">₹{{ booking.electricity_charges|floatformat:2 }}</td>
+                </tr>
+                <tr style="border-top: 2px solid #e5e7eb; font-weight: bold; font-size: 1rem;">
+                    <th>Total Booking Cost</th>
+                    <td style="text-align: right; color: #1e3a8a;">₹{{ booking.total_amount|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Advance Paid</th>
+                    <td style="text-align: right; color: #15803d; font-weight: 600;">₹{{ booking.advance_paid|floatformat:2 }}</td>
+                </tr>
+                <tr style="border-top: 1px solid #e5e7eb; font-weight: bold;">
+                    <th>Balance Due</th>
+                    <td style="text-align: right; color: {% if booking.balance_due > 0 %}#b91c1c{% else %}#15803d{% endif %};">
+                        ₹{{ booking.balance_due|floatformat:2 }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Payment Status</th>
+                    <td style="text-align: right;">
+                        <span class="badge {% if booking.payment_status == 'PAID' %}badge-active{% elif booking.payment_status == 'PARTIAL' %}badge-due{% else %}badge-neutral{% endif %}">
+                            {{ booking.get_payment_status_display }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Staff Management Actions -->
+        {% if can_manage %}
+        <div class="card">
+            <h2>Management Actions</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% if booking.status == 'REQUESTED' %}
+                <form method="post" action="{% url 'bookings:booking_approve' booking.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="width: 100%;" onclick="return confirm('Approve this hall reservation request?');">
+                        &check; Approve Booking Request
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if booking.status != 'CANCELLED' and booking.status != 'COMPLETED' %}
+                <form method="post" action="{% url 'bookings:booking_cancel' booking.id %}" onsubmit="return promptCancellation();">
+                    {% csrf_token %}
+                    <input type="hidden" name="cancellation_reason" id="cancellation_reason_input" value="">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;">
+                        &times; Cancel Booking
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if not booking.deposit_refunded and booking.deposit_amount > 0 and booking.status != 'CANCELLED' %}
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 0.5rem;">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Process Deposit Refund</h3>
+                    <form method="post" action="{% url 'bookings:booking_refund_deposit' booking.id %}">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <label for="id_refund_amount" style="font-size: 0.8rem; font-weight: 600; display: block;">Refund Amount (Max ₹{{ booking.deposit_amount|floatformat:2 }}):</label>
+                            {{ refund_form.refund_amount }}
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;" onclick="return confirm('Confirm processing this security deposit refund?');">
+                            Refund Security Deposit
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function promptCancellation() {
+    var reason = prompt("Enter reason for cancellation:");
+    if (reason === null) {
+        return false;
+    }
+    document.getElementById('cancellation_reason_input').value = reason;
+    return true;
+}
+</script>
+{% endblock %}

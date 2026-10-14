@@ -20,7 +20,8 @@
             {% endif %}
         </p>
     </div>
-    <div style="display: flex; gap: 0.5rem;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'bookings:portal_bookings' %}" class="btn btn-secondary">Hall &amp; Lawn Bookings</a>
         <a href="{% url 'events:portal_events' %}" class="btn btn-primary">Festival Events &amp; RSVP</a>
         <a href="{% url 'portal:logout' %}" class="btn btn-secondary">Logout</a>
     </div>

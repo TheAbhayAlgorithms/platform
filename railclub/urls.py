@@ -17,6 +17,7 @@ urlpatterns = [
     path('whatsapp/', include('notifications.urls')),
     path('reports/', include('reports.urls')),
     path('events/', include('events.urls')),
+    path('bookings/', include('bookings.urls')),
     path('member/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
 
 

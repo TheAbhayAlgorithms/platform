@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Facilities & Halls Directory - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Facilities &amp; Halls Directory</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Manage wedding halls, banquet lawns, auditorium rooms, and club rental spaces.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <a href="{% url 'bookings:facility_create' %}" class="btn btn-primary">+ Add New Facility</a>
+        {% endif %}
+        <a href="{% url 'bookings:booking_list' %}" class="btn btn-secondary">&larr; Bookings Directory</a>
+    </div>
+</div>
+
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Facility Name</th>
+                    <th style="padding: 0.75rem 0.5rem;">Type</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Capacity</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Slot Rent</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Full Day Rent</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Deposit</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Electricity</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    {% if can_manage %}
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in facilities %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ f.name }}</strong>
+                        {% if f.description %}
+                            <div style="font-size: 0.75rem; color: #6b7280; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ f.get_facility_type_display }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <strong>{{ f.capacity }}</strong> guests
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                        <strong>₹{{ f.rent_per_slot|floatformat:2 }}</strong>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                        <strong>₹{{ f.full_day_rent|floatformat:2 }}</strong>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                        ₹{{ f.security_deposit|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                        ₹{{ f.flat_electricity_charge|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if f.is_active %}
+                            <span class="badge badge-active">Active</span>
+                        {% else %}
+                            <span class="badge badge-expired">Inactive</span>
+                        {% endif %}
+                    </td>
+                    {% if can_manage %}
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'bookings:facility_edit' f.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Edit</a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No facilities found in the system. Add your first facility above!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

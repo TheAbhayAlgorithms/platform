@@ -38,7 +38,7 @@
             <li><strong>Events & Bookings:</strong></li>
             <li><a href="{% url 'events:event_list' %}">&rarr; Festival Celebrations & Events</a></li>
             {% if profile.can_manage_events %}
-                <li><a href="#">&rarr; Wedding & Hall Bookings</a> <span class="help-text">(Module 13)</span></li>
+                <li><a href="{% url 'bookings:booking_list' %}">&rarr; Wedding &amp; Hall Bookings</a></li>
             {% endif %}
 
 

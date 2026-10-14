@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}New Hall & Wedding Booking - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Record Hall &amp; Wedding Booking</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Reserve an institute facility for a railway employee event with automated slot conflict checking.
+        </p>
+    </div>
+    <a href="{% url 'bookings:booking_list' %}" class="btn btn-secondary">&larr; Back to Bookings</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Step 1: Member Lookup -->
+    <div class="card">
+        <h2>1. Find Railway Member</h2>
+        <form method="get" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, ID, mobile, or PPO..." class="form-control" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+            <button type="submit" class="btn btn-primary">Find</button>
+        </form>
+
+        {% if members_found %}
+            <div style="max-height: 280px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <tbody>
+                        {% for m in members_found %}
+                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                            <td style="padding: 0.5rem;">
+                                <strong>{{ m.name }}</strong> ({{ m.membership_id }})<br>
+                                <span style="color: var(--text-muted);">{{ m.get_department_display }} &bull; {{ m.mobile_number }}</span>
+                            </td>
+                            <td style="padding: 0.5rem; text-align: right;">
+                                <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="selectMember('{{ m.id }}', '{{ m.name }} ({{ m.membership_id }})')">Select</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% elif search_query %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">No active members found matching '{{ search_query }}'.</p>
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Search for the booking member above, or enter the Member ID directly into the form.</p>
+        {% endif %}
+
+        <div id="selected-member-box" style="margin-top: 1rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; display: none;">
+            <strong style="color: #15803d;">Selected Member:</strong>
+            <span id="selected-member-name" style="font-weight: 600;"></span>
+        </div>
+    </div>
+
+    <!-- Step 2: Booking Form -->
+    <div class="card">
+        <h2>2. Booking &amp; Facility Details</h2>
+        <form method="post">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_member_id" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Member ID (Database PK):</label>
+                {{ form.member_id }}
+                {% if form.member_id.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.member_id.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_facility" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Facility / Hall:</label>
+                {{ form.facility }}
+                {% if form.facility.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.facility.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label for="id_booking_date" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Booking Date:</label>
+                    {{ form.booking_date }}
+                    {% if form.booking_date.errors %}
+                        <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.booking_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="id_slot" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Time Slot:</label>
+                    {{ form.slot }}
+                    {% if form.slot.errors %}
+                        <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.slot.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_event_type" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Event Type:</label>
+                {{ form.event_type }}
+                {% if form.event_type.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.event_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_purpose" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Event Title / Purpose:</label>
+                {{ form.purpose }}
+                {% if form.purpose.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.purpose.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_advance_paid" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Advance Paid (₹):</label>
+                {{ form.advance_paid }}
+                {% if form.advance_paid.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.advance_paid.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="id_special_requests" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Special Requests / Setup Details:</label>
+                {{ form.special_requests }}
+                {% if form.special_requests.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.special_requests.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Confirm Hall Booking</button>
+                <a href="{% url 'bookings:booking_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function selectMember(id, name) {
+    var input = document.getElementById('id_member_id');
+    if (input) {
+        input.value = id;
+    }
+    var box = document.getElementById('selected-member-box');
+    var span = document.getElementById('selected-member-name');
+    if (box && span) {
+        span.textContent = name;
+        box.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

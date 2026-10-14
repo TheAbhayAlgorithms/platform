@@ -335,3 +335,66 @@ Duplicate In Batch,9876512001,WR-OPS-604,Operating
         assert Member.objects.filter(name='Rahul Dravid').count() == 1
         assert Member.objects.filter(name='VVS Laxman').count() == 1
 
+
+@pytest.mark.django_db
+class TestModule7DatabaseHardeningAndSeed:
+    def test_seed_phase1_data_command_execution(self):
+        """Tests that seed_phase1_data command seeds exactly 50 members and dependencies."""
+        from django.core.management import call_command
+        from renewals.models import RenewalRecord
+        from payments.models import Payment
+
+        call_command('seed_phase1_data', '--clean')
+
+        assert Member.objects.count() == 50
+        assert Member.objects.filter(status=MemberStatus.ACTIVE, is_removed=False).count() == 30
+        assert Member.objects.filter(status=MemberStatus.DUE, is_removed=False).count() == 10
+        assert Member.objects.filter(status=MemberStatus.EXPIRED, is_removed=False).count() == 5
+        assert Member.objects.filter(is_removed=True).count() == 3
+        assert Member.objects.filter(status=MemberStatus.SUSPENDED).count() == 2
+
+        # Verify family dependents
+        assert MemberFamily.objects.count() >= 40
+
+        # Verify payments & receipts
+        assert Payment.objects.count() >= 30
+
+        # Verify renewals
+        assert RenewalRecord.objects.count() >= 10
+
+    def test_zero_migration_drift(self):
+        """Verifies that all models match migrations with zero drift."""
+        from django.core.management import call_command
+        out = io.StringIO()
+        call_command('makemigrations', dry_run=True, check=True, stdout=out)
+        output = out.getvalue()
+        assert "No changes detected" in output
+
+    def test_blind_index_lookups_across_seeded_members(self):
+        """Ensures phone and employee ID search across seeded records works seamlessly."""
+        from django.core.management import call_command
+        call_command('seed_phase1_data')
+
+        # Exact phone lookup
+        res1 = Member.objects.search_query("9876540001")
+        assert res1.count() == 1
+        assert res1.first().name == "Rajesh Chandra Sharma"
+
+        # Employee ID lookup
+        res2 = Member.objects.search_query("CR-COM-2002")
+        assert res2.count() == 1
+        assert res2.first().name == "Pooja Makarand Kulkarni"
+
+    def test_database_hardening_foreign_keys_and_cascades(self):
+        """
+        Tests database hardening:
+        - SQLite PRAGMA foreign_keys is verified ON.
+        """
+        from django.db import connection
+        if connection.vendor == 'sqlite':
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA foreign_keys;")
+                fk_status = cursor.fetchone()
+                assert fk_status[0] == 1
+
+

@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Collection Report ({{ target_date|date:"d M Y" }}) - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Daily Collection Report</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Financial transaction reconciliation for <strong>{{ target_date|date:"l, d F Y" }}</strong>.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <a href="?date={{ target_date|date:'Y-m-d' }}&export=excel" class="btn btn-primary" id="btn-export-excel">Export Excel</a>
+        <a href="?date={{ target_date|date:'Y-m-d' }}&export=pdf" class="btn btn-secondary" id="btn-export-pdf">Export PDF</a>
+        <a href="?date={{ target_date|date:'Y-m-d' }}&export=csv" class="btn btn-secondary" id="btn-export-csv">Export CSV</a>
+        <a href="{% url 'reports:hub' %}" class="btn btn-secondary">&larr; Reports Hub</a>
+    </div>
+</div>
+
+<!-- Date Selector Filter Form -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div>
+            <label for="date-input" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Select Collection Date:</label>
+            <input type="date" id="date-input" name="date" value="{{ target_date|date:'Y-m-d' }}" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Filter Date</button>
+        </div>
+    </form>
+</div>
+
+<!-- KPI Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Gross Collected</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            ₹{{ data.total_amount|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">{{ data.total_count }} transaction{{ data.total_count|pluralize }}</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Refunds &amp; Adjustments</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            ₹{{ data.adjustments|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Deductions applied</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Net Collection</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">
+            ₹{{ data.net_collection|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Final balance</span>
+    </div>
+</div>
+
+<!-- Payment Mode Breakdown -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Collections by Payment Mode</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+        {% for mode_key, mode_info in data.mode_breakdown.items %}
+        <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.75rem; background: #fafafa;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">{{ mode_info.label }}</div>
+            <div style="font-size: 1.25rem; font-weight: bold; color: #1f2937; margin: 0.2rem 0;">
+                ₹{{ mode_info.amount|floatformat:2 }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ mode_info.count }} payment{{ mode_info.count|pluralize }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.15rem; margin: 0;">Receipts Ledger</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">{{ data.total_count }} transaction{{ data.total_count|pluralize }} recorded</span>
+    </div>
+
+    {% if data.payments %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.75rem;">Time</th>
+                    <th style="padding: 0.75rem;">Receipt No</th>
+                    <th style="padding: 0.75rem;">Member</th>
+                    <th style="padding: 0.75rem;">Plan</th>
+                    <th style="padding: 0.75rem;">Payment Mode</th>
+                    <th style="padding: 0.75rem; text-align: right;">Amount (₹)</th>
+                    <th style="padding: 0.75rem;">Received By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in data.payments %}
+                <tr style="border-bottom: 1px solid #f3f4f6; font-size: 0.9rem;">
+                    <td style="padding: 0.75rem; color: var(--text-muted);">{{ p.created_at|date:"H:i" }}</td>
+                    <td style="padding: 0.75rem; font-family: monospace; font-weight: 600;">
+                        <a href="{% url 'payments:payment_detail' p.id %}" style="color: var(--primary-color); text-decoration: none;">
+                            {{ p.receipt_number }}
+                        </a>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <a href="{% url 'members:member_detail' p.member.id %}" style="font-weight: 600; color: #111827; text-decoration: none;">
+                            {{ p.member.name }}
+                        </a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ p.member.membership_id }}</div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if p.plan_assignment and p.plan_assignment.plan %}
+                            <span>{{ p.plan_assignment.plan.name }}</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                            {{ p.get_payment_mode_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-weight: 700; color: #15803d;">
+                        ₹{{ p.amount|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">
+                        {% if p.collected_by %}{{ p.collected_by.get_full_name|default:p.collected_by.username }}{% else %}System{% endif %}
+                    </td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #e5e7eb; font-weight: bold; background: #fafafa;">
+                    <td colspan="5" style="padding: 0.75rem; text-align: right;">Total Gross Collections:</td>
+                    <td style="padding: 0.75rem; text-align: right; color: #15803d; font-size: 1.05rem;">
+                        ₹{{ data.total_amount|floatformat:2 }}
+                    </td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No payments collected on this date.</p>
+        <p style="font-size: 0.9rem;">Select another date using the filter above to view historical collections.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

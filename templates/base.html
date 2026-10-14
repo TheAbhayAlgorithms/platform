@@ -16,8 +16,10 @@
                 <ul class="nav-links">
                     {% block nav_links %}
                     {% if user.is_authenticated %}
-                        <li><a href="{% url 'accounts:dashboard' %}">Admin Dashboard</a></li>
+                        <li><a href="{% url 'accounts:dashboard' %}">Dashboard</a></li>
+                        <li><a href="{% url 'reports:hub' %}">Reports</a></li>
                         <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
+
                     {% elif request.session.member_authenticated %}
                         <li><a href="{% url 'portal:dashboard' %}">My Membership</a></li>
                         <li><a href="{% url 'portal:logout' %}">Logout</a></li>

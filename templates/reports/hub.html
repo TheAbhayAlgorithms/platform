@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Financial & Member Reports - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Financial &amp; Member Reports</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Real-time institute financial audits, collection receipts, defaulters tracking, and membership demographic analytics.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- High-Level KPI Summary -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Today's Collections ({{ today|date:"d M" }})</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            ₹{{ daily_collection|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">{{ daily_count }} transaction{{ daily_count|pluralize }}</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Defaulters</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            {{ defaulters_count }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Pending dues</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Overdue Deficit</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #c2410c; margin-top: 0.25rem;">
+            ₹{{ total_outstanding|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Outstanding balance</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Active Members</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">
+            {{ total_members }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Enrolled railway staff</span>
+    </div>
+</div>
+
+<!-- Specialized Reports Navigation Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+    <!-- Report 1: Daily Collection -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h2 style="font-size: 1.15rem; margin: 0;">Daily Collection Report</h2>
+                <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.75rem; padding: 0.2rem 0.5rem;">Financial</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Day-by-day transaction reconciliation categorized by payment method (Cash, UPI, NEFT/RTGS, Cheque).
+            </p>
+            <div style="font-size: 0.85rem; color: #374151; margin-bottom: 1.25rem;">
+                &bull; Complete payment receipts audit<br>
+                &bull; Cashier and receiver details<br>
+                &bull; Adjustments &amp; net collection calculation
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'reports:daily_collection' %}" class="btn btn-primary" style="flex: 1; text-align: center;">View Report</a>
+            <a href="{% url 'reports:daily_collection' %}?export=excel" class="btn btn-secondary">Excel</a>
+            <a href="{% url 'reports:daily_collection' %}?export=pdf" class="btn btn-secondary">PDF</a>
+        </div>
+    </div>
+
+    <!-- Report 2: Revenue Summary -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h2 style="font-size: 1.15rem; margin: 0;">Date-Range Revenue Summary</h2>
+                <span class="badge" style="background: #e0f2fe; color: #075985; font-size: 0.75rem; padding: 0.2rem 0.5rem;">Financial</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Comprehensive revenue performance across customized calendar intervals (monthly, quarterly, annual).
+            </p>
+            <div style="font-size: 0.85rem; color: #374151; margin-bottom: 1.25rem;">
+                &bull; Plan-wise subscription revenue breakdown<br>
+                &bull; Digital vs offline payment distribution<br>
+                &bull; Refund &amp; waiver deduction accounting
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'reports:revenue_summary' %}" class="btn btn-primary" style="flex: 1; text-align: center;">View Report</a>
+            <a href="{% url 'reports:revenue_summary' %}?export=excel" class="btn btn-secondary">Excel</a>
+            <a href="{% url 'reports:revenue_summary' %}?export=pdf" class="btn btn-secondary">PDF</a>
+        </div>
+    </div>
+
+    <!-- Report 3: Dues & Defaulters -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h2 style="font-size: 1.15rem; margin: 0;">Dues &amp; Defaulters Aging</h2>
+                <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 0.75rem; padding: 0.2rem 0.5rem;">Compliance</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Tracks overdue subscription balances, days past grace period, and department-level outstanding dues.
+            </p>
+            <div style="font-size: 0.85rem; color: #374151; margin-bottom: 1.25rem;">
+                &bull; Filterable by Railway Department<br>
+                &bull; Overdue days aging analysis<br>
+                &bull; Contact numbers for recovery alerts
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'reports:defaulters' %}" class="btn btn-primary" style="flex: 1; text-align: center;">View Report</a>
+            <a href="{% url 'reports:defaulters' %}?export=excel" class="btn btn-secondary">Excel</a>
+            <a href="{% url 'reports:defaulters' %}?export=pdf" class="btn btn-secondary">PDF</a>
+        </div>
+    </div>
+
+    <!-- Report 4: Member Demographics -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h2 style="font-size: 1.15rem; margin: 0;">Member Demographics</h2>
+                <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem; padding: 0.2rem 0.5rem;">Directory</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Departmental distribution, status categorizations (Active, Due, Expired), and active plan coverage.
+            </p>
+            <div style="font-size: 0.85rem; color: #374151; margin-bottom: 1.25rem;">
+                &bull; Department-wise member headcount<br>
+                &bull; Active subscription coverage ratio<br>
+                &bull; WhatsApp DPDP opt-in compliance rate
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'reports:demographics' %}" class="btn btn-primary" style="flex: 1; text-align: center;">View Report</a>
+            <a href="{% url 'reports:demographics' %}?export=excel" class="btn btn-secondary">Excel</a>
+            <a href="{% url 'reports:demographics' %}?export=csv" class="btn btn-secondary">CSV</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

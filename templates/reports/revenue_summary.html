@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Revenue Summary Report - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Revenue Summary Report</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Income and revenue trends from <strong>{{ start_date|date:"d M Y" }}</strong> to <strong>{{ end_date|date:"d M Y" }}</strong>.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <a href="?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&export=excel" class="btn btn-primary">Export Excel</a>
+        <a href="?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&export=pdf" class="btn btn-secondary">Export PDF</a>
+        <a href="?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&export=csv" class="btn btn-secondary">Export CSV</a>
+        <a href="{% url 'reports:hub' %}" class="btn btn-secondary">&larr; Reports Hub</a>
+    </div>
+</div>
+
+<!-- Date Interval Filter Form -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div>
+            <label for="start_date" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="end_date" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">End Date:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Apply Interval</button>
+        </div>
+    </form>
+</div>
+
+<!-- Financial KPI Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Gross Revenue</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            ₹{{ data.total_revenue|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">{{ data.total_transactions }} payment{{ data.total_transactions|pluralize }}</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Refunds &amp; Adjustments</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            ₹{{ data.adjustments|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Approved deductions</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Net Revenue</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">
+            ₹{{ data.net_revenue|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Realized income</span>
+    </div>
+</div>
+
+<!-- Plan Breakdown and Mode Breakdown Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Revenue by Membership Plan -->
+    <div class="card">
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Revenue by Membership Plan</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; color: var(--text-muted); font-size: 0.8rem;">
+                    <th style="padding: 0.5rem;">Plan Name</th>
+                    <th style="padding: 0.5rem; text-align: center;">Transactions</th>
+                    <th style="padding: 0.5rem; text-align: right;">Revenue (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan_name, info in data.plan_summary.items %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.5rem; font-weight: 600;">{{ plan_name }}</td>
+                    <td style="padding: 0.5rem; text-align: center;">{{ info.count }}</td>
+                    <td style="padding: 0.5rem; text-align: right; font-weight: 600; color: #15803d;">
+                        ₹{{ info.amount|floatformat:2 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="padding: 1rem; text-align: center; color: var(--text-muted);">No subscription revenue in this period.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Revenue by Payment Mode -->
+    <div class="card">
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Revenue by Payment Method</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; color: var(--text-muted); font-size: 0.8rem;">
+                    <th style="padding: 0.5rem;">Method</th>
+                    <th style="padding: 0.5rem; text-align: center;">Count</th>
+                    <th style="padding: 0.5rem; text-align: right;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mode_key, info in data.mode_summary.items %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.5rem; font-weight: 600;">{{ info.label }}</td>
+                    <td style="padding: 0.5rem; text-align: center;">{{ info.count }}</td>
+                    <td style="padding: 0.5rem; text-align: right; font-weight: 600; color: #15803d;">
+                        ₹{{ info.amount|floatformat:2 }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Transactions Sample Table -->
+<div class="card">
+    <h2 style="font-size: 1.15rem; margin-bottom: 0.75rem;">Sample Period Transactions (Latest 100)</h2>
+    {% if data.payments %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.5rem;">Date</th>
+                    <th style="padding: 0.5rem;">Receipt No</th>
+                    <th style="padding: 0.5rem;">Member</th>
+                    <th style="padding: 0.5rem;">Plan</th>
+                    <th style="padding: 0.5rem;">Mode</th>
+                    <th style="padding: 0.5rem; text-align: right;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in data.payments %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.5rem; color: var(--text-muted);">{{ p.payment_date|date:"d M Y" }}</td>
+                    <td style="padding: 0.5rem; font-family: monospace; font-weight: 600;">
+                        <a href="{% url 'payments:payment_detail' p.id %}" style="color: var(--primary-color); text-decoration: none;">
+                            {{ p.receipt_number }}
+                        </a>
+                    </td>
+
+                    <td style="padding: 0.5rem;">
+                        <strong>{{ p.member.name }}</strong>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">({{ p.member.membership_id }})</span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                        {{ p.plan_assignment.plan.name|default:"-" }}
+                    </td>
+                    <td style="padding: 0.5rem;">
+                        <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem;">
+                            {{ p.get_payment_mode_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.5rem; text-align: right; font-weight: 700; color: #15803d;">
+                        ₹{{ p.amount|floatformat:2 }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; padding: 2rem; color: var(--text-muted);">No transactions recorded in this date interval.</p>
+    {% endif %}
+</div>
+{% endblock %}

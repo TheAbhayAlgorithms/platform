@@ -32,7 +32,9 @@ INSTALLED_APPS = [
     'renewals.apps.RenewalsConfig',
     'portal.apps.PortalConfig',
     'notifications.apps.NotificationsConfig',
+    'reports.apps.ReportsConfig',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

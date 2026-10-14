@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Dues & Defaulters Aging Report - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dues &amp; Defaulters Aging Report</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            List of members with overdue subscription balances, past grace period, and payment dues.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <a href="?department={{ department_filter|default:'' }}&export=excel" class="btn btn-primary" id="btn-export-excel">Export Excel</a>
+        <a href="?department={{ department_filter|default:'' }}&export=pdf" class="btn btn-secondary" id="btn-export-pdf">Export PDF</a>
+        <a href="?department={{ department_filter|default:'' }}&export=csv" class="btn btn-secondary" id="btn-export-csv">Export CSV</a>
+        <a href="{% url 'reports:hub' %}" class="btn btn-secondary">&larr; Reports Hub</a>
+    </div>
+</div>
+
+<!-- Department Filter Form -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div>
+            <label for="dept-select" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Filter by Railway Department:</label>
+            <select id="dept-select" name="department" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Railway Departments --</option>
+                {% for dept_code, dept_label in data.departments %}
+                    <option value="{{ dept_code }}" {% if department_filter == dept_code %}selected{% endif %}>{{ dept_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if department_filter %}
+                <a href="{% url 'reports:defaulters' %}" class="btn btn-secondary" style="margin-left: 0.5rem;">Clear Filter</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Overview KPI Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Defaulters</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            {{ data.total_count }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">{% if department_filter %}in selected department{% else %}across all departments{% endif %}</span>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 1rem;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Outstanding Deficit</span>
+        <div style="font-size: 1.75rem; font-weight: bold; color: #c2410c; margin-top: 0.25rem;">
+            ₹{{ data.total_outstanding|floatformat:2 }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Uncollected membership dues</span>
+    </div>
+</div>
+
+<!-- Defaulters Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.15rem; margin: 0;">Defaulters &amp; Aging Ledger</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Sorted by Highest Balance Due</span>
+    </div>
+
+    {% if data.defaulters %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.65rem;">Member</th>
+                    <th style="padding: 0.65rem;">Contact</th>
+                    <th style="padding: 0.65rem;">Department</th>
+                    <th style="padding: 0.65rem;">Status</th>
+                    <th style="padding: 0.65rem;">Plan</th>
+                    <th style="padding: 0.65rem;">Overdue</th>
+                    <th style="padding: 0.65rem; text-align: right;">Fee (₹)</th>
+                    <th style="padding: 0.65rem; text-align: right;">Paid (₹)</th>
+                    <th style="padding: 0.65rem; text-align: right;">Balance Due (₹)</th>
+                    <th style="padding: 0.65rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in data.defaulters %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.65rem;">
+                        <a href="{% url 'members:member_detail' d.member.id %}" style="font-weight: 600; color: var(--primary-color); text-decoration: none;">
+                            {{ d.name }}
+                        </a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ d.membership_id }}</div>
+                    </td>
+                    <td style="padding: 0.65rem; font-size: 0.85rem;">{{ d.phone }}</td>
+                    <td style="padding: 0.65rem; font-size: 0.85rem;">{{ d.department }}</td>
+                    <td style="padding: 0.65rem;">
+                        {% if d.status == 'Due' %}
+                            <span class="badge" style="background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; font-size: 0.75rem; padding: 0.2rem 0.4rem; border-radius: 4px;">Due</span>
+                        {% elif d.status == 'Expired' %}
+                            <span class="badge" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; font-size: 0.75rem; padding: 0.2rem 0.4rem; border-radius: 4px;">Expired</span>
+                        {% else %}
+                            <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem; padding: 0.2rem 0.4rem; border-radius: 4px;">{{ d.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.65rem; font-size: 0.85rem;">
+                        {{ d.plan_name }}
+                        {% if d.end_date %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">End: {{ d.end_date|date:"d M Y" }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.65rem;">
+                        {% if d.days_overdue > 0 %}
+                            <span style="font-weight: 600; color: #dc2626;">{{ d.days_overdue }} days</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.65rem; text-align: right; color: var(--text-muted);">
+                        ₹{{ d.total_due|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.65rem; text-align: right; color: #15803d;">
+                        ₹{{ d.total_paid|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.65rem; text-align: right; font-weight: 700; color: #b91c1c;">
+                        ₹{{ d.balance_due|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.65rem; text-align: center;">
+                        <a href="{% url 'payments:payment_record' d.member.id %}" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            Collect
+                        </a>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #e5e7eb; font-weight: bold; background: #fafafa;">
+                    <td colspan="8" style="padding: 0.75rem; text-align: right;">Total Outstanding Balance:</td>
+                    <td style="padding: 0.75rem; text-align: right; color: #b91c1c; font-size: 1.05rem;">
+                        ₹{{ data.total_outstanding|floatformat:2 }}
+                    </td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #15803d; font-weight: 600;">No Defaulters Found!</p>
+        <p style="font-size: 0.9rem;">All active members have cleared their membership dues.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

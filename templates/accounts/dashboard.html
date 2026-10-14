@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Admin Dashboard</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Logged in as <strong>{{ user.get_full_name|default:user.username }}</strong>
+            <span class="badge badge-neutral" style="margin-left: 0.5rem;">{{ profile.get_role_display|default:"Staff" }}</span>
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'accounts:change_password' %}" class="btn">Change Password</a>
+        <a href="{% url 'accounts:logout' %}" class="btn btn-secondary">Logout</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+    <!-- Operations Panel -->
+    <div class="card">
+        <h2>Module Navigation</h2>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+            {% if profile.is_super_admin %}
+                <li><strong>Super Admin Controls:</strong></li>
+                <li><a href="{% url 'accounts:user_list' %}">&rarr; Admin User Management (Roles & Security)</a></li>
+            {% endif %}
+
+            <li><strong>Membership & Dues:</strong></li>
+            <li><a href="#">&rarr; Members Directory</a> <span class="help-text">(Module 2)</span></li>
+            <li><a href="#">&rarr; Membership Plans & Fees</a> <span class="help-text">(Module 3)</span></li>
+            {% if profile.can_manage_payments %}
+                <li><a href="#">&rarr; Record Payments & Dues</a> <span class="help-text">(Module 4)</span></li>
+            {% endif %}
+            <li><a href="#">&rarr; Renewals & Expiries</a> <span class="help-text">(Module 5)</span></li>
+
+            <li><strong>Events & Bookings:</strong></li>
+            {% if profile.can_manage_events %}
+                <li><a href="#">&rarr; Festival Celebrations & Events</a> <span class="help-text">(Module 12)</span></li>
+                <li><a href="#">&rarr; Wedding & Hall Bookings</a> <span class="help-text">(Module 13)</span></li>
+            {% endif %}
+
+            <li><strong>Communications & Reports:</strong></li>
+            <li><a href="#">&rarr; WhatsApp Automation & Logs</a> <span class="help-text">(Module 9)</span></li>
+            <li><a href="#">&rarr; Institute Financial & Member Reports</a> <span class="help-text">(Module 11)</span></li>
+        </ul>
+    </div>
+
+    <!-- Role & Security Details -->
+    <div class="card">
+        <h2>Role & Access Permissions</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 50%;">Role</th>
+                <td><strong>{{ profile.get_role_display }}</strong></td>
+            </tr>
+            <tr>
+                <th>2FA Status</th>
+                <td><span class="badge badge-active">Active (OTP Required)</span></td>
+            </tr>
+            <tr>
+                <th>Session Timeout</th>
+                <td>20 Minutes Idle</td>
+            </tr>
+            <tr>
+                <th>Delete Records</th>
+                <td>
+                    {% if profile.can_delete_records %}
+                        <span class="badge badge-active">Allowed</span>
+                    {% else %}
+                        <span class="badge badge-expired">Restricted (Super Admin Only)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Payment Operations</th>
+                <td>
+                    {% if profile.can_manage_payments %}
+                        <span class="badge badge-active">Authorized</span>
+                    {% else %}
+                        <span class="badge badge-neutral">Read Only</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Event Operations</th>
+                <td>
+                    {% if profile.can_manage_events %}
+                        <span class="badge badge-active">Authorized</span>
+                    {% else %}
+                        <span class="badge badge-neutral">Read Only</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

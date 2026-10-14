@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Two-Step OTP - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Two-Step Verification</h1>
+</div>
+
+<div class="card" style="max-width: 480px;">
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+        A 6-digit verification code has been dispatched to your mobile: <strong>{{ masked_phone }}</strong>.
+        This code is valid for 5 minutes.
+    </p>
+
+    <form method="post" action="{% url 'accounts:verify_otp' %}">
+        {% csrf_token %}
+
+        <div class="form-group" style="text-align: center;">
+            <label for="id_otp_code" style="margin-bottom: 0.5rem;">Enter 6-Digit Code</label>
+            {{ form.otp_code }}
+            {% if form.otp_code.errors %}
+                <div class="error-text" style="margin-top: 0.5rem;">{{ form.otp_code.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Verify & Sign In</button>
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <a href="{% url 'accounts:resend_otp' %}">Resend OTP</a>
+                <a href="{% url 'accounts:login' %}">Cancel / Use Another Account</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

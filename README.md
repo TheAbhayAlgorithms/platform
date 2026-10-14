@@ -24,15 +24,50 @@ RailClub Connect is a comprehensive platform built with Python Django to manage 
 ## Directory Structure
 ```
 platform/
+├── accounts/               # Module 1: Admin authentication, 2FA OTP, roles & user management
 ├── core/                   # Core shared utilities, cryptography, base models & context
 ├── railclub/               # Project configuration & settings
 ├── templates/              # Server-rendered HTML templates (Clean & Minimal)
+│   ├── accounts/           # Login, OTP verification, dashboard, user management
+│   ├── base.html           # Minimal base layout
+│   └── home.html           # Landing page
 ├── static/css/             # Plain CSS styling (No heavy JS frameworks)
 ├── .env.example            # Environment variables template
 ├── pytest.ini              # Pytest Django configuration
 ├── requirements.txt        # Production & development dependencies
 └── manage.py
 ```
+
+---
+
+## Module 1: Authentication & Access Control
+
+### Features Built:
+1. **Admin Login & 2-Step OTP Verification**:
+   - Secure login with username and password.
+   - 2-Step verification (OTP) sent to the admin's registered mobile via WhatsApp (mock provider logs to console/db).
+   - Single-use 6-digit OTP with 5-minute expiration, max 3 attempts, and cryptographically hashed storage in DB.
+2. **Brute-Force Protection & Lockout**:
+   - Consecutive failed password attempts are tracked.
+   - Account is locked for 15 minutes after 5 failed attempts.
+3. **Session Idle Timeout**:
+   - Enforces strict 20-minute idle session timeout.
+   - Inactive sessions are automatically invalidated with redirection to login.
+4. **Role-Based Access Control (RBAC)**:
+   - 4 Roles: `Super Admin`, `Accountant`, `Event Manager`, `Viewer`.
+   - Role decorators (`@role_required`, `@super_admin_required`) protecting all administrative views.
+   - Super Admin only can create, edit, disable, or reset passwords for admin staff.
+5. **Password Management**:
+   - Change password for authenticated admins.
+   - Forgot/Reset password via secure cryptographic one-time token.
+
+### Pre-Seeded Demo Accounts (Fake numbers):
+| Username | Password | Role | Phone (2FA) |
+| :--- | :--- | :--- | :--- |
+| `superadmin` | `Admin@RailClub2026!` | Super Admin | `+919876543210` |
+| `accountant` | `Acct@RailClub2026!` | Accountant | `+919876543211` |
+| `eventmanager` | `Event@RailClub2026!` | Event Manager | `+919876543212` |
+| `viewer` | `View@RailClub2026!` | Viewer | `+919876543213` |
 
 ---
 
@@ -56,9 +91,10 @@ cp .env.example .env
 ```
 Ensure `FIELD_ENCRYPTION_KEY` and `BLIND_INDEX_SALT` are properly set.
 
-### 4. Run Migrations
+### 4. Run Migrations & Seed Demo Accounts
 ```bash
 python manage.py migrate
+python manage.py seed_accounts
 ```
 
 ### 5. Run Automated Tests
@@ -70,4 +106,4 @@ pytest
 ```bash
 python manage.py runserver
 ```
-Visit `http://127.0.0.1:8000/` or `http://127.0.0.1:8000/health/`.
+Visit `http://127.0.0.1:8000/login/`. During login, check the terminal console for the printed Mock WhatsApp OTP code (e.g. `[MOCK WHATSAPP OTP] To: +919876543210 | OTP: 123456`).

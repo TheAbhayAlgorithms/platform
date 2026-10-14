@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Users - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Admin Users & Roles</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Manage staff access, roles, and security permissions.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">+ Add New Admin User</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn">&larr; Dashboard</a>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>2FA Mobile</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in admin_users %}
+            <tr>
+                <td><strong>{{ u.username }}</strong></td>
+                <td>{{ u.get_full_name|default:"-" }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                    <span class="badge badge-neutral">{{ u.profile.get_role_display|default:"Viewer" }}</span>
+                </td>
+                <td>
+                    <code>{{ u.profile.phone|default:"Not set" }}</code>
+                </td>
+                <td>
+                    {% if u.is_active %}
+                        <span class="badge badge-active">Active</span>
+                    {% else %}
+                        <span class="badge badge-expired">Disabled</span>
+                    {% endif %}
+                    {% if u.profile.is_locked_out %}
+                        <span class="badge badge-due" title="Locked due to failed attempts">Locked</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">
+                    {{ u.last_login|date:"d-m-Y H:i"|default:"Never" }}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="{% url 'accounts:user_edit' u.id %}">Edit</a>
+                        <span>|</span>
+                        <a href="{% url 'accounts:user_reset_password' u.id %}">Reset PW</a>
+                        {% if u != request.user %}
+                            <span>|</span>
+                            <form method="post" action="{% url 'accounts:user_toggle_status' u.id %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; text-decoration: underline; padding: 0; font-family: inherit; font-size: inherit;">
+                                    {% if u.is_active %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                    No admin users registered yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

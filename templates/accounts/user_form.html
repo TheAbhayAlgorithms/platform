@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <a href="{% url 'accounts:user_list' %}" class="btn">&larr; Back to Users</a>
+</div>
+
+<div class="card" style="max-width: 520px;">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.username %}
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="error-text">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="id_first_name">First Name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+                <div class="error-text">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_last_name">Last Name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+                <div class="error-text">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_email">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="error-text">{{ form.email.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_role">Assigned Role</label>
+            {{ form.role }}
+            {% if form.role.errors %}
+                <div class="error-text">{{ form.role.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_phone">2FA Mobile Number</label>
+            {{ form.phone }}
+            <p class="help-text">10-digit Indian phone (e.g., 9876543210). Stored encrypted with blind index.</p>
+            {% if form.phone.errors %}
+                <div class="error-text">{{ form.phone.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        {% if form.initial_password %}
+            <div class="form-group">
+                <label for="id_initial_password">Temporary Initial Password</label>
+                {{ form.initial_password }}
+                <p class="help-text">Minimum 8 characters.</p>
+                {% if form.initial_password.errors %}
+                    <div class="error-text">{{ form.initial_password.errors.0 }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if form.is_active %}
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                {{ form.is_active }}
+                <label for="id_is_active" style="margin-bottom: 0;">Account is Active (able to log in)</label>
+            </div>
+        {% endif %}
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Save Admin User</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Renewal Management & Expiries - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Renewal Management & Expiries</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Track membership expiry milestones, grace periods, and process one-click renewals.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <form method="post" action="{% url 'renewals:run_auto_expiry' %}" style="display: inline; margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn" onclick="return confirm('Run automated expiry sweep now? This will transition memberships past validity and grace periods to Expired status.');">
+                    &#x21bb; Run Auto-Expiry Sweep
+                </button>
+            </form>
+        {% endif %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Milestone Counter Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="?filter=all" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == 'all' %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Active</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?filter=overdue" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == 'overdue' %}border-color: #ef4444; background: #fef2f2;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b91c1c; font-weight: 600;">Overdue / Expired</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">{{ counts.overdue }}</div>
+        </div>
+    </a>
+    <a href="?filter=grace" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == 'grace' %}border-color: #f59e0b; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b45309; font-weight: 600;">In Grace Period</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b45309; margin-top: 0.25rem;">{{ counts.in_grace }}</div>
+        </div>
+    </a>
+    <a href="?filter=7" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == '7' %}border-color: #f59e0b; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b45309; font-weight: 600;">Expiring in 7 Days</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b45309; margin-top: 0.25rem;">{{ counts.within_7 }}</div>
+        </div>
+    </a>
+    <a href="?filter=15" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == '15' %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Expiring in 15 Days</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.within_15 }}</div>
+        </div>
+    </a>
+    <a href="?filter=30" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if filter_mode == '30' %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Expiring in 30 Days</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.within_30 }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Search & Department Filter -->
+<div class="card" style="margin-bottom: 1.25rem;">
+    <form method="get" action="{% url 'renewals:renewal_list' %}" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+        <input type="hidden" name="filter" value="{{ filter_mode }}">
+        
+        <div style="flex: 1; min-width: 220px;">
+            <label for="id_q" style="font-size: 0.85rem;">Search Member Name, ID, Mobile, or Employee ID</label>
+            <input type="text" name="q" id="id_q" value="{{ search_query }}" placeholder="Member name, RC-2026-..., phone, emp ID..." style="width: 100%;">
+        </div>
+
+        <div style="min-width: 200px;">
+            <label for="id_dept" style="font-size: 0.85rem;">Railway Department</label>
+            <select name="department" id="id_dept" style="width: 100%;">
+                <option value="">All Departments</option>
+                {% for code, label in department_choices %}
+                    <option value="{{ code }}" {% if department == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'renewals:renewal_list' %}?filter={{ filter_mode }}" class="btn">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Renewal Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Member</th>
+                <th>Department</th>
+                <th>Current Plan</th>
+                <th>Validity Period</th>
+                <th>Milestone Status</th>
+                <th>Due Balance</th>
+                <th>Member Status</th>
+                <th style="min-width: 190px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in page_obj %}
+            <tr {% if item.is_overdue %}style="background-color: #fef2f2;"{% elif item.is_in_grace %}style="background-color: #fffbeb;"{% endif %}>
+                <td>
+                    <a href="{% url 'renewals:member_history' item.member.id %}">
+                        <strong>{{ item.member.name }}</strong>
+                    </a>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        ID: {{ item.member.membership_id }}
+                    </div>
+                </td>
+                <td style="font-size: 0.85rem;">
+                    {{ item.member.get_department_display }}
+                </td>
+                <td>
+                    <strong>{{ item.plan.name }}</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        ₹{{ item.assignment.final_fee|floatformat:2 }}
+                    </div>
+                </td>
+                <td style="font-size: 0.85rem;">
+                    {{ item.start_date|date:"d-m-Y" }} to <strong>{{ item.end_date|date:"d-m-Y" }}</strong>
+                    {% if item.assignment.grace_period_days %}
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                            Grace till: {{ item.grace_end_date|date:"d-m-Y" }} ({{ item.assignment.grace_period_days }}d)
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.is_overdue %}
+                        {% if item.is_in_grace %}
+                            <span class="badge badge-due">In Grace ({{ item.days_remaining|stringformat:"+d" }}d)</span>
+                        {% else %}
+                            <span class="badge badge-expired">Expired ({{ item.days_remaining|stringformat:"+d" }}d)</span>
+                        {% endif %}
+                    {% elif item.days_remaining <= 7 %}
+                        <span class="badge badge-due">{{ item.days_remaining }} day{{ item.days_remaining|pluralize }} left</span>
+                    {% elif item.days_remaining <= 30 %}
+                        <span class="badge badge-neutral">{{ item.days_remaining }} days left</span>
+                    {% else %}
+                        <span class="badge badge-active">{{ item.days_remaining }} days left</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.balance_due > 0 %}
+                        <strong style="color: #b91c1c;">₹{{ item.balance_due|floatformat:2 }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Outstanding</div>
+                    {% else %}
+                        <span style="color: #15803d; font-weight: 600;">₹0.00</span>
+                        <div style="font-size: 0.75rem; color: #15803d;">Paid in full</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.member.status == 'ACTIVE' %}
+                        <span class="badge badge-active">Active</span>
+                    {% elif item.member.status == 'DUE' %}
+                        <span class="badge badge-due">Due</span>
+                    {% elif item.member.status == 'EXPIRED' %}
+                        <span class="badge badge-expired">Expired</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ item.member.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                        {% if can_manage %}
+                            <form method="post" action="{% url 'renewals:one_click_renew' item.member.id %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm" title="Quick Renew with same plan">
+                                    Quick Renew
+                                </button>
+                            </form>
+                            <a href="{% url 'renewals:renew_member' item.member.id %}" class="btn btn-sm" title="Renew with plan choice or discount">
+                                Custom
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'renewals:member_history' item.member.id %}" class="btn btn-secondary btn-sm" title="View timeline & history">
+                            History
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    No membership records match the selected filter criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+    {% if page_obj.has_previous %}
+        <a href="?page=1&filter={{ filter_mode }}&q={{ search_query }}&department={{ department }}" class="btn">&laquo; First</a>
+        <a href="?page={{ page_obj.previous_page_number }}&filter={{ filter_mode }}&q={{ search_query }}&department={{ department }}" class="btn">&larr; Prev</a>
+    {% endif %}
+
+    <span style="font-size: 0.9rem; color: var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&filter={{ filter_mode }}&q={{ search_query }}&department={{ department }}" class="btn">Next &rarr;</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}&filter={{ filter_mode }}&q={{ search_query }}&department={{ department }}" class="btn">Last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Renewal History - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Renewal History & Plan Timeline</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Member: <strong>{{ member.name }}</strong> (ID: <code>{{ member.membership_id }}</code>)
+            &bull; Department: {{ member.get_department_display }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <a href="{% url 'renewals:renew_member' member.id %}" class="btn btn-primary">+ Process Renewal</a>
+            <a href="{% url 'payments:record_payment' member.id %}" class="btn">+ Record Payment</a>
+        {% endif %}
+        <a href="{% url 'renewals:renewal_list' %}" class="btn btn-secondary">&larr; Renewals List</a>
+    </div>
+</div>
+
+<!-- Dues & Standing Summary -->
+<div class="card" style="margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; align-items: center;">
+    <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Current Standing:</span>
+        <div style="margin-top: 0.25rem;">
+            {% if member.status == 'ACTIVE' %}
+                <span class="badge badge-active" style="font-size: 0.95rem;">Active</span>
+            {% elif member.status == 'DUE' %}
+                <span class="badge badge-due" style="font-size: 0.95rem;">Payment Due</span>
+            {% elif member.status == 'EXPIRED' %}
+                <span class="badge badge-expired" style="font-size: 0.95rem;">Expired</span>
+            {% else %}
+                <span class="badge badge-neutral" style="font-size: 0.95rem;">{{ member.get_status_display }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Current Plan:</span>
+        <div style="font-size: 1.1rem; font-weight: bold; margin-top: 0.25rem;">
+            {{ dues_info.plan_name }}
+        </div>
+    </div>
+    <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Total Cycle Fee:</span>
+        <div style="font-size: 1.1rem; font-weight: bold; margin-top: 0.25rem;">
+            ₹{{ dues_info.total_due|floatformat:2 }}
+        </div>
+    </div>
+    <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Total Paid:</span>
+        <div style="font-size: 1.1rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            ₹{{ dues_info.total_paid|floatformat:2 }}
+        </div>
+    </div>
+    <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Outstanding Balance:</span>
+        <div style="font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem;">
+            {% if dues_info.balance_due > 0 %}
+                <span style="color: #b91c1c;">₹{{ dues_info.balance_due|floatformat:2 }}</span>
+            {% else %}
+                <span style="color: #15803d;">₹0.00 (Cleared)</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Plan Assignments History -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>Plan Assignment Timeline</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Plan</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Grace End</th>
+                    <th>Base Fee</th>
+                    <th>Discount</th>
+                    <th>Net Fee</th>
+                    <th>Assigned By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assignments %}
+                <tr {% if a.is_current %}style="background-color: #f0fdf4;"{% endif %}>
+                    <td>
+                        {% if a.is_current %}
+                            <span class="badge badge-active">Current</span>
+                        {% else %}
+                            <span class="badge badge-neutral">Past Cycle</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ a.plan.name }}</strong></td>
+                    <td>{{ a.start_date|date:"d-m-Y" }}</td>
+                    <td><strong>{{ a.end_date|date:"d-m-Y" }}</strong></td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">
+                        {{ a.end_date|date:"d-m-Y" }} (+{{ a.grace_period_days }}d)
+                    </td>
+                    <td>₹{{ a.base_fee|floatformat:2 }}</td>
+                    <td>
+                        {% if a.discount_amount > 0 %}
+                            -₹{{ a.discount_amount|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td><strong>₹{{ a.final_fee|floatformat:2 }}</strong></td>
+                    <td style="font-size: 0.85rem; color: var(--text-muted);">
+                        {{ a.assigned_by.username|default:"System" }}
+                        <div style="font-size: 0.75rem;">{{ a.assigned_at|date:"d-m-Y H:i" }}</div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No plan assignments on record for this member.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Renewal Audit Records -->
+<div class="card">
+    <h2>Renewal Audit Log</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Renewal Timestamp</th>
+                    <th>Initiated By</th>
+                    <th>Plan</th>
+                    <th>Previous Expiry</th>
+                    <th>New Validity Period</th>
+                    <th>Fee Snapshot</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in renewals %}
+                <tr>
+                    <td>{{ r.renewal_date|date:"d-m-Y H:i:s" }}</td>
+                    <td>
+                        <strong>{{ r.renewed_by.username|default:"System / Automation" }}</strong>
+                    </td>
+                    <td>{{ r.plan.name }}</td>
+                    <td>
+                        {% if r.previous_end_date %}
+                            {{ r.previous_end_date|date:"d-m-Y" }}
+                        {% else %}
+                            <span style="color: var(--text-muted);">None (Initial)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ r.new_start_date|date:"d-m-Y" }}</strong> to <strong>{{ r.new_end_date|date:"d-m-Y" }}</strong>
+                    </td>
+                    <td>₹{{ r.fee_charged|floatformat:2 }}</td>
+                    <td style="font-size: 0.85rem; color: var(--text-muted);">
+                        {{ r.notes|default:"-" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No explicit renewal rollover records logged yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

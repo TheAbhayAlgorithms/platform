@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'members.apps.MembersConfig',
     'plans.apps.PlansConfig',
     'payments.apps.PaymentsConfig',
+    'renewals.apps.RenewalsConfig',
 ]
 
 MIDDLEWARE = [

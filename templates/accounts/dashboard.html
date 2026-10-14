@@ -33,7 +33,7 @@
             {% if profile.can_manage_payments %}
                 <li><a href="{% url 'payments:payment_list' %}">&rarr; Record Payments & Dues</a></li>
             {% endif %}
-            <li><a href="#">&rarr; Renewals & Expiries</a> <span class="help-text">(Module 5)</span></li>
+            <li><a href="{% url 'renewals:renewal_list' %}">&rarr; Renewals & Expiries</a></li>
 
             <li><strong>Events & Bookings:</strong></li>
             {% if profile.can_manage_events %}

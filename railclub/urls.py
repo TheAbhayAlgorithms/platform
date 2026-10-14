@@ -9,6 +9,7 @@ urlpatterns = [
     path('', home, name='home'),
     path('health/', health_check, name='health_check'),
     path('payments/', include('payments.urls')),
+    path('renewals/', include('renewals.urls')),
     path('plans/', include('plans.urls')),
     path('members/', include('members.urls')),
     path('', include('accounts.urls')),

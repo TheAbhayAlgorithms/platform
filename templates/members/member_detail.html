@@ -26,9 +26,10 @@
             <a href="{% url 'payments:payment_record' member.id %}" class="btn btn-primary">+ Record Payment</a>
         {% endif %}
         {% if not user.profile.is_viewer and not member.is_removed %}
-            <a href="{% url 'plans:member_assign' member.id %}" class="btn">+ Assign / Renew Plan</a>
+            <a href="{% url 'renewals:renew_member' member.id %}" class="btn">Renew Plan</a>
             <a href="{% url 'members:member_edit' member.id %}" class="btn">Edit Profile</a>
         {% endif %}
+        <a href="{% url 'renewals:member_history' member.id %}" class="btn">Renewal History</a>
         {% if user.profile.is_super_admin and not member.is_removed %}
             <a href="{% url 'members:member_delete' member.id %}" class="btn btn-danger">Remove Member</a>
         {% endif %}

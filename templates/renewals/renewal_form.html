@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Renew Membership - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Renew Membership</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Assign a new plan cycle, apply concessions, and set up the renewal validity.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'renewals:member_history' member.id %}" class="btn">&larr; Renewal History</a>
+        <a href="{% url 'renewals:renewal_list' %}" class="btn btn-secondary">&larr; All Renewals</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: flex-start;">
+    <!-- Member & Current Plan Snapshot -->
+    <div class="card">
+        <h2>Member Standing</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 40%;">Member Name</th>
+                <td><strong>{{ member.name }}</strong></td>
+            </tr>
+            <tr>
+                <th>Membership ID</th>
+                <td><code>{{ member.membership_id }}</code></td>
+            </tr>
+            <tr>
+                <th>Department</th>
+                <td>{{ member.get_department_display }}</td>
+            </tr>
+            <tr>
+                <th>Current Status</th>
+                <td>
+                    {% if member.status == 'ACTIVE' %}
+                        <span class="badge badge-active">Active</span>
+                    {% elif member.status == 'DUE' %}
+                        <span class="badge badge-due">Due</span>
+                    {% elif member.status == 'EXPIRED' %}
+                        <span class="badge badge-expired">Expired</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ member.get_status_display }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Current Plan</th>
+                <td>{{ current_plan.name|default:"No active plan" }}</td>
+            </tr>
+            {% if current_assignment %}
+            <tr>
+                <th>Current Period</th>
+                <td>
+                    {{ current_assignment.start_date|date:"d-m-Y" }} to <strong>{{ current_assignment.end_date|date:"d-m-Y" }}</strong>
+                </td>
+            </tr>
+            <tr>
+                <th>Current Validity</th>
+                <td>
+                    {% if current_assignment.is_expired %}
+                        <span style="color: #b91c1c; font-weight: 600;">Expired</span>
+                    {% else %}
+                        <span style="color: #15803d; font-weight: 600;">Active</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        {% if preview_dates %}
+        <div style="margin-top: 1.25rem; padding: 1rem; background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 4px;">
+            <h3 style="margin-top: 0; font-size: 1rem; color: var(--primary-color);">Prospective Renewal Validity</h3>
+            <ul style="padding-left: 1.25rem; margin-bottom: 0; font-size: 0.9rem;">
+                <li>
+                    <strong>New Start Date:</strong> {{ preview_dates.new_start_date|date:"d-m-Y" }}
+                    {% if preview_dates.is_early_renewal %}
+                        <span style="color: #15803d; font-size: 0.8rem;">(Continuous from previous end date)</span>
+                    {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">(Starts today)</span>
+                    {% endif %}
+                </li>
+                <li><strong>New End Date:</strong> {{ preview_dates.new_end_date|date:"d-m-Y" }}</li>
+                <li><strong>Grace Period Ends:</strong> {{ preview_dates.grace_end_date|date:"d-m-Y" }}</li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Renewal Form -->
+    <div class="card">
+        <h2>Process Renewal</h2>
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="{{ form.plan.id_for_label }}">{{ form.plan.label }}</label>
+                {{ form.plan }}
+                {% if form.plan.help_text %}
+                    <span class="help-text">{{ form.plan.help_text }}</span>
+                {% endif %}
+                {% if form.plan.errors %}
+                    <span style="color: #b91c1c; font-size: 0.85rem;">{{ form.plan.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.discount.id_for_label }}">{{ form.discount.label }}</label>
+                {{ form.discount }}
+                {% if form.discount.help_text %}
+                    <span class="help-text">{{ form.discount.help_text }}</span>
+                {% endif %}
+                {% if form.discount.errors %}
+                    <span style="color: #b91c1c; font-size: 0.85rem;">{{ form.discount.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% if form.notes.help_text %}
+                    <span class="help-text">{{ form.notes.help_text }}</span>
+                {% endif %}
+                {% if form.notes.errors %}
+                    <span style="color: #b91c1c; font-size: 0.85rem;">{{ form.notes.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Confirm renewal for {{ member.name }}?');">
+                    Confirm & Execute Renewal
+                </button>
+                <a href="{% url 'renewals:renewal_list' %}" class="btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

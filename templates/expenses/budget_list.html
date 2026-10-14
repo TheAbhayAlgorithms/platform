@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Budget Allocations - {{ fiscal_year }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Fiscal Year Budget Allocations ({{ fiscal_year }})</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Departmental spending sanctions, festival budgets, and fund utilization tracking.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <a href="{% url 'expenses:budget_create' %}" class="btn btn-primary">+ Allocate New Budget Head</a>
+        {% endif %}
+        <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary">&equiv; Expenditures Ledger</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Macro Budget Overview Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Allocated Budget</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #1e3a8a; margin-top: 0.25rem;">
+            ₹{{ overview.total_allocated|floatformat:2 }}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Approved Expenditure</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            ₹{{ overview.total_spent|floatformat:2 }}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem; {% if overview.is_over_budget %}background: #fef2f2; border-color: #ef4444;{% else %}background: #f0fdf4; border-color: #15803d;{% endif %}">
+        <span style="font-size: 0.85rem; font-weight: 600; color: {% if overview.is_over_budget %}#b91c1c{% else %}#15803d{% endif %};">Net Remaining Funds</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: {% if overview.is_over_budget %}#b91c1c{% else %}#15803d{% endif %}; margin-top: 0.25rem;">
+            ₹{{ overview.remaining|floatformat:2 }}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Fund Utilization</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #4b5563; margin-top: 0.25rem;">
+            {{ overview.utilization }}%
+        </div>
+    </div>
+</div>
+
+<!-- Budget Heads Table -->
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Budget Head Name</th>
+                    <th style="padding: 0.75rem 0.5rem;">Category</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Allocated Budget</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Spent to Date</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Remaining</th>
+                    <th style="padding: 0.75rem 0.5rem; width: 180px;">Utilization (%)</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    {% if can_manage %}
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for head in heads %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ head.name }}</strong>
+                        {% if head.notes %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ head.notes }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ head.get_category_display }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right; font-weight: 600;">
+                        ₹{{ head.allocated_amount|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right; color: #1e3a8a;">
+                        ₹{{ head.total_spent|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right; font-weight: bold; color: {% if head.remaining_amount < 0 %}#b91c1c{% else %}#15803d{% endif %};">
+                        ₹{{ head.remaining_amount|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="flex: 1; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
+                                <div style="width: {{ head.utilization_percentage }}%; height: 100%; background: {% if head.is_over_budget %}#ef4444{% else %}#15803d{% endif %};"></div>
+                            </div>
+                            <span style="font-size: 0.8rem; font-weight: 600; min-width: 40px; text-align: right;">{{ head.utilization_percentage }}%</span>
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if head.is_active %}
+                            <span class="badge badge-active" style="font-size: 0.75rem;">Active</span>
+                        {% else %}
+                            <span class="badge badge-expired" style="font-size: 0.75rem;">Inactive</span>
+                        {% endif %}
+                    </td>
+                    {% if can_manage %}
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'expenses:budget_edit' head.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Edit</a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No budget allocations recorded for financial year {{ fiscal_year }}.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

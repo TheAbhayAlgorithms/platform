@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Institute Expenditures & Vouchers - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Institute Expenditures &amp; Vouchers</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Expenditure ledger, vendor disbursements, payment modes, and budget tracking.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_create %}
+            <a href="{% url 'expenses:expense_create' %}" class="btn btn-primary">+ Record Expense Voucher</a>
+        {% endif %}
+        <a href="{% url 'expenses:budget_list' %}" class="btn btn-secondary">&equiv; Budget Allocations</a>
+        <a href="{% url 'expenses:expense_export_csv' %}" class="btn btn-secondary">&#128190; Export CSV</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem; border-color: #15803d; background: #f0fdf4;">
+        <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Total Approved Spend</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            ₹{{ counts.approved_total|floatformat:2 }}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem; border-color: #d97706; background: #fffbeb;">
+        <span style="font-size: 0.85rem; color: #d97706; font-weight: 600;">Pending Review</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #d97706; margin-top: 0.25rem;">
+            ₹{{ counts.pending_total|floatformat:2 }}
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ counts.pending_count }} vouchers</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Vouchers</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #1e3a8a; margin-top: 0.25rem;">
+            {{ counts.total }}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Rejected Vouchers</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">
+            {{ counts.rejected_count }}
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="q" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Search Expenditures:</label>
+            <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="Voucher #, payee, title, or reference #..." class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="category" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Category:</label>
+            <select id="category" name="category" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Categories --</option>
+                {% for c_val, c_label in category_choices %}
+                    <option value="{{ c_val }}" {% if category_filter == c_val %}selected{% endif %}>{{ c_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="head" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Budget Head:</label>
+            <select id="head" name="head" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Budget Heads --</option>
+                {% for bh in budget_heads %}
+                    <option value="{{ bh.id }}" {% if head_filter == bh.id|stringformat:"s" %}selected{% endif %}>{{ bh.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="status" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Status:</label>
+            <select id="status" name="status" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Statuses --</option>
+                {% for s_val, s_label in status_choices %}
+                    <option value="{{ s_val }}" {% if status_filter == s_val %}selected{% endif %}>{{ s_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem;">Filter</button>
+            {% if search_query or status_filter or category_filter or head_filter %}
+                <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary" style="padding: 0.45rem 0.75rem;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Expenses Table -->
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Voucher #</th>
+                    <th style="padding: 0.75rem 0.5rem;">Date</th>
+                    <th style="padding: 0.75rem 0.5rem;">Title &amp; Payee</th>
+                    <th style="padding: 0.75rem 0.5rem;">Category</th>
+                    <th style="padding: 0.75rem 0.5rem;">Budget Head</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Amount (₹)</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Mode</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exp in page_obj %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong><a href="{% url 'expenses:expense_detail' exp.id %}">{{ exp.voucher_number }}</a></strong>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; white-space: nowrap; color: var(--text-muted); font-size: 0.8rem;">
+                        {{ exp.expense_date|date:"d-m-Y" }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ exp.title }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Payee: <strong>{{ exp.payee }}</strong></div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ exp.get_category_display }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; font-size: 0.8rem; color: #4b5563;">
+                        {{ exp.budget_head.name|default:"Direct Contingency" }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right; font-weight: bold; color: #1e3a8a;">
+                        ₹{{ exp.amount|floatformat:2 }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center; font-size: 0.75rem;">
+                        <span class="badge badge-neutral">{{ exp.get_payment_mode_display }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if exp.status == 'APPROVED' or exp.status == 'PAID' %}
+                            <span class="badge badge-active">Approved</span>
+                        {% elif exp.status == 'SUBMITTED' %}
+                            <span class="badge badge-due">Pending</span>
+                        {% elif exp.status == 'REJECTED' %}
+                            <span class="badge badge-expired">Rejected</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ exp.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'expenses:expense_detail' exp.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Audit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No expenditures found matching the selected filter criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&category={{ category_filter }}&status={{ status_filter }}&head={{ head_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&larr; Previous</a>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&category={{ category_filter }}&status={{ status_filter }}&head={{ head_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

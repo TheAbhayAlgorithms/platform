@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Expenditure Voucher - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Record Expenditure Voucher</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Issue an expense voucher against an authorized departmental budget head.
+        </p>
+    </div>
+    <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary">&larr; Back to Expenditures</a>
+</div>
+
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_title" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Expense Title / Purpose:</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.title.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_category" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Expense Category:</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_budget_head" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Authorized Budget Head:</label>
+                {{ form.budget_head }}
+                {% if form.budget_head.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.budget_head.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_payee" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Payee / Vendor Name:</label>
+                {{ form.payee }}
+                {% if form.payee.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.payee.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_amount" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Voucher Amount (₹):</label>
+                {{ form.amount }}
+                {% if form.amount.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.amount.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_expense_date" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Date of Expenditure:</label>
+                {{ form.expense_date }}
+                {% if form.expense_date.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.expense_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_payment_mode" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Payment Mode:</label>
+                {{ form.payment_mode }}
+                {% if form.payment_mode.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.payment_mode.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_reference_number" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Bill / Invoice #, Cheque #, or UPI UTR Reference:</label>
+            {{ form.reference_number }}
+            {% if form.reference_number.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.reference_number.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label for="id_notes" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Itemized Items &amp; Committee Justification:</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.notes.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        {% if can_auto_approve %}
+        <div style="margin-bottom: 1.5rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem; color: #15803d; cursor: pointer;">
+                <input type="checkbox" name="auto_approve" value="1" checked> Auto-approve voucher immediately (Accountant / Admin authorization)
+            </label>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Expenditure Voucher</button>
+            <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Voucher {{ expense.voucher_number }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1>Voucher {{ expense.voucher_number }}</h1>
+            {% if expense.status == 'APPROVED' or expense.status == 'PAID' %}
+                <span class="badge badge-active">Approved</span>
+            {% elif expense.status == 'SUBMITTED' %}
+                <span class="badge badge-due">Pending Review</span>
+            {% elif expense.status == 'REJECTED' %}
+                <span class="badge badge-expired">Rejected</span>
+            {% else %}
+                <span class="badge badge-neutral">{{ expense.get_status_display }}</span>
+            {% endif %}
+            <span class="badge badge-neutral">{{ expense.get_category_display }}</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Incurred on {{ expense.expense_date|date:"l, d F Y" }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary">&larr; Back to Expenditures</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Voucher Breakdown -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="card">
+            <h2>Expenditure Summary</h2>
+            <table style="width: 100%; font-size: 0.95rem;">
+                <tr>
+                    <th style="width: 35%;">Purpose / Title</th>
+                    <td><strong>{{ expense.title }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Payee / Vendor</th>
+                    <td><strong>{{ expense.payee }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Total Amount</th>
+                    <td><strong style="color: #1e3a8a; font-size: 1.25rem;">₹{{ expense.amount|floatformat:2 }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Payment Mode</th>
+                    <td><span class="badge badge-neutral">{{ expense.get_payment_mode_display }}</span></td>
+                </tr>
+                <tr>
+                    <th>Reference / Invoice #</th>
+                    <td>{{ expense.reference_number|default:"No reference recorded" }}</td>
+                </tr>
+                <tr>
+                    <th>Category</th>
+                    <td>{{ expense.get_category_display }}</td>
+                </tr>
+                {% if expense.notes %}
+                <tr>
+                    <th>Notes &amp; Justification</th>
+                    <td style="color: #4b5563;">{{ expense.notes|linebreaksbr }}</td>
+                </tr>
+                {% endif %}
+                {% if expense.rejection_reason %}
+                <tr style="background: #fef2f2;">
+                    <th style="color: #b91c1c;">Rejection Reason</th>
+                    <td style="color: #b91c1c;"><strong>{{ expense.rejection_reason }}</strong></td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Budget Head Allocation Details -->
+        <div class="card">
+            <h2>Budget Head Breakdown</h2>
+            {% if expense.budget_head %}
+            <table style="width: 100%; font-size: 0.9rem;">
+                <tr>
+                    <th style="width: 35%;">Budget Head</th>
+                    <td><strong>{{ expense.budget_head.name }}</strong> ({{ expense.budget_head.fiscal_year }})</td>
+                </tr>
+                <tr>
+                    <th>Total Allocated</th>
+                    <td>₹{{ expense.budget_head.allocated_amount|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Total Spent Under Head</th>
+                    <td>₹{{ expense.budget_head.total_spent|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <th>Remaining Balance</th>
+                    <td>
+                        <strong style="color: {% if expense.budget_head.remaining_amount < 0 %}#b91c1c{% else %}#15803d{% endif %};">
+                            ₹{{ expense.budget_head.remaining_amount|floatformat:2 }}
+                        </strong>
+                        {% if expense.budget_head.is_over_budget %}
+                            <span class="badge badge-expired" style="margin-left: 0.5rem;">Over Budget!</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Budget Utilization</th>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="flex: 1; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
+                                <div style="width: {{ expense.budget_head.utilization_percentage }}%; height: 100%; background: {% if expense.budget_head.is_over_budget %}#ef4444{% else %}#15803d{% endif %};"></div>
+                            </div>
+                            <span>{{ expense.budget_head.utilization_percentage }}%</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            {% else %}
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                This expenditure was logged as a direct emergency/contingency expense without linking a departmental budget head.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Audit Trail & Management Actions -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Audit Trail -->
+        <div class="card">
+            <h2>Voucher Audit Trail</h2>
+            <table style="width: 100%; font-size: 0.85rem;">
+                <tr>
+                    <th style="width: 45%;">Submitted By</th>
+                    <td>{{ expense.submitted_by.username|default:"System" }}</td>
+                </tr>
+                <tr>
+                    <th>Submitted On</th>
+                    <td>{{ expense.created_at|date:"d-m-Y H:i" }}</td>
+                </tr>
+                {% if expense.approved_at %}
+                <tr>
+                    <th>Approved By</th>
+                    <td><strong>{{ expense.approved_by.username }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Approved On</th>
+                    <td>{{ expense.approved_at|date:"d-m-Y H:i" }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Approval / Rejection Actions -->
+        {% if can_approve and expense.status == 'SUBMITTED' %}
+        <div class="card">
+            <h2>Accountant Actions</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <form method="post" action="{% url 'expenses:expense_approve' expense.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="width: 100%;" onclick="return confirm('Approve this expenditure voucher for disbursement?');">
+                        &check; Approve Expense Voucher
+                    </button>
+                </form>
+
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 0.75rem; margin-top: 0.25rem;">
+                    <form method="post" action="{% url 'expenses:expense_reject' expense.id %}" onsubmit="return promptRejection();">
+                        {% csrf_token %}
+                        <input type="hidden" name="rejection_reason" id="rejection_reason_input" value="">
+                        <button type="submit" class="btn btn-danger" style="width: 100%;">
+                            &times; Reject Voucher
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function promptRejection() {
+    var reason = prompt("Enter official reason for rejecting this expenditure voucher:");
+    if (reason === null || reason.trim() === "") {
+        alert("A rejection reason is mandatory.");
+        return false;
+    }
+    document.getElementById('rejection_reason_input').value = reason;
+    return true;
+}
+</script>
+{% endblock %}

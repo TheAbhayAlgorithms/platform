@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit {{ head.name }}{% else %}Allocate Budget Head{% endif %} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if is_edit %}Edit Budget: {{ head.name }}{% else %}Allocate New Budget Head{% endif %}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Set departmental spending caps and authorized fiscal allocations.
+        </p>
+    </div>
+    <a href="{% url 'expenses:budget_list' %}" class="btn btn-secondary">&larr; Back to Budgets</a>
+</div>
+
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_name" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Budget Head Name:</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_category" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Category:</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_fiscal_year" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Fiscal Year:</label>
+                {{ form.fiscal_year }}
+                {% if form.fiscal_year.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.fiscal_year.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_allocated_amount" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Allocated Amount (₹):</label>
+            {{ form.allocated_amount }}
+            {% if form.allocated_amount.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.allocated_amount.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label for="id_notes" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Sanction Notes &amp; Committee Resolution:</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.notes.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                {{ form.is_active }} Active &amp; Open for Expense Booking
+            </label>
+            {% if form.is_active.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.is_active.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                {% if is_edit %}Save Changes{% else %}Create Budget Head{% endif %}
+            </button>
+            <a href="{% url 'expenses:budget_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

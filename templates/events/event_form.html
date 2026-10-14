@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Event: {{ event.title }}{% else %}Create Festival Event{% endif %} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if is_edit %}Edit Event: {{ event.title }}{% else %}Create Festival Celebration / Event{% endif %}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Configure event schedule, capacity limits, member subsidies, and venue logistics.
+        </p>
+    </div>
+    <div>
+        {% if is_edit %}
+            <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">&larr; Back to Event</a>
+        {% else %}
+            <a href="{% url 'events:event_list' %}" class="btn btn-secondary">&larr; Event List</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="grid-column: 1 / -1;">
+                <label for="{{ form.title.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Event Title *</label>
+                {{ form.title }}
+                {% if form.title.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.title.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.category.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Event Category *</label>
+                {{ form.category }}
+                {% if form.category.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.category.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.venue.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Venue *</label>
+                {{ form.venue }}
+                {% if form.venue.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.venue.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.start_date_time.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Start Date &amp; Time *</label>
+                {{ form.start_date_time }}
+                {% if form.start_date_time.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.start_date_time.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.end_date_time.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">End Date &amp; Time *</label>
+                {{ form.end_date_time }}
+                {% if form.end_date_time.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.end_date_time.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.registration_deadline.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Registration Deadline</label>
+                {{ form.registration_deadline }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Leave blank to allow RSVP up to event start.</div>
+                {% if form.registration_deadline.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.registration_deadline.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.capacity.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Total Capacity (Headcount)</label>
+                {{ form.capacity }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Set 0 for unlimited attendees.</div>
+                {% if form.capacity.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.capacity.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.member_entry_fee.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Member Entry Fee (₹)</label>
+                {{ form.member_entry_fee }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">0 for complimentary member entry.</div>
+                {% if form.member_entry_fee.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.member_entry_fee.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.guest_entry_fee.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Guest Entry Fee (₹)</label>
+                {{ form.guest_entry_fee }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Fee per outside accompanying guest.</div>
+                {% if form.guest_entry_fee.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.guest_entry_fee.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.max_guests_per_member.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Max Guests Allowed / Member</label>
+                {{ form.max_guests_per_member }}
+                {% if form.max_guests_per_member.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.max_guests_per_member.errors }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.status.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Publication Status</label>
+                {{ form.status }}
+                {% if form.status.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.status.errors }}</div>{% endif %}
+            </div>
+
+            <div style="grid-column: 1 / -1;">
+                <label for="{{ form.description.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Event Schedule &amp; Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.description.errors }}</div>{% endif %}
+            </div>
+
+            <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem;">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" style="font-weight: 600; margin: 0;">Visible on Member Portal &amp; Platform</label>
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+            {% if is_edit %}
+                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">
+                {% if is_edit %}Save Changes{% else %}Publish Event{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

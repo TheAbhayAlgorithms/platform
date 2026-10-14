@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Member for {{ event.title }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Register Member: {{ event.title }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Venue: <strong>{{ event.venue }}</strong> &bull; Schedule: <strong>{{ event.start_date_time|date:"d M Y, H:i" }}</strong>
+            &bull; Remaining Capacity: <strong>{% if event.capacity > 0 %}{{ event.remaining_capacity }}{% else %}&infin;{% endif %}</strong>
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">&larr; Back to Event</a>
+    </div>
+</div>
+
+<!-- Step 1: Member Search Bar -->
+<div class="card" style="margin-bottom: 1.25rem;">
+    <h2>Step 1: Search &amp; Select Member</h2>
+    <form method="get" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search member by Name, Phone (+91...), or PF Employee ID..." class="form-control" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    {% if members_found %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.5rem;">Membership ID</th>
+                    <th style="padding: 0.5rem;">Name</th>
+                    <th style="padding: 0.5rem;">Phone</th>
+                    <th style="padding: 0.5rem;">Department</th>
+                    <th style="padding: 0.5rem;">Status</th>
+                    <th style="padding: 0.5rem; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in members_found %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.5rem; font-family: monospace; font-weight: 600;">{{ m.membership_id }}</td>
+                    <td style="padding: 0.5rem; font-weight: 600;">{{ m.name }}</td>
+                    <td style="padding: 0.5rem;">{{ m.phone }}</td>
+                    <td style="padding: 0.5rem;">{{ m.get_department_display }}</td>
+                    <td style="padding: 0.5rem;">
+                        <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.75rem;">{{ m.get_status_display }}</span>
+                    </td>
+                    <td style="padding: 0.5rem; text-align: right;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="selectMember('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.membership_id|escapejs }}')">
+                            Select &rarr;
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif search_query %}
+    <p style="color: var(--text-muted); font-size: 0.9rem; padding: 0.5rem 0;">No active members found matching '{{ search_query }}'.</p>
+    {% endif %}
+</div>
+
+<!-- Step 2: Registration Details Form -->
+<div class="card" id="registration-card" style="max-width: 650px;">
+    <h2>Step 2: Attendee Details</h2>
+
+    <div id="selected-member-banner" style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: none;">
+        Selected: <strong id="banner-name"></strong> (<span id="banner-id" style="font-family: monospace;"></span>)
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.member_id }}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="{{ form.num_family_members.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Accompanying Family Members</label>
+                {{ form.num_family_members }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Immediate family / dependants.</div>
+            </div>
+
+            <div>
+                <label for="{{ form.num_guests.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Accompanying Outside Guests</label>
+                {{ form.num_guests }}
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Max {{ event.max_guests_per_member }} guests (₹{{ event.guest_entry_fee|floatformat:2 }}/guest).</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="{{ form.notes.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Special Notes / Dietary Requirements</label>
+            {{ form.notes }}
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+            <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="btn-submit-registration" disabled>
+                Confirm RSVP
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function selectMember(id, name, membershipId) {
+    document.getElementById('id_member_id').value = id;
+    document.getElementById('banner-name').innerText = name;
+    document.getElementById('banner-id').innerText = membershipId;
+    document.getElementById('selected-member-banner').style.display = 'block';
+    document.getElementById('btn-submit-registration').disabled = false;
+    document.getElementById('registration-card').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

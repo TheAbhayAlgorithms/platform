@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <h1>{{ event.title }}</h1>
+            {% if event.status == 'PUBLISHED' %}
+                <span class="badge" style="background: #dcfce7; color: #166534;">Open</span>
+            {% elif event.status == 'ONGOING' %}
+                <span class="badge" style="background: #e0f2fe; color: #075985;">Happening Today</span>
+            {% elif event.status == 'COMPLETED' %}
+                <span class="badge" style="background: #f3f4f6; color: #4b5563;">Completed</span>
+            {% elif event.status == 'CANCELLED' %}
+                <span class="badge" style="background: #fee2e2; color: #991b1b;">Cancelled</span>
+            {% else %}
+                <span class="badge" style="background: #fffbeb; color: #b45309;">{{ event.get_status_display }}</span>
+            {% endif %}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            {{ event.get_category_display }} &bull; Venue: <strong>{{ event.venue }}</strong>
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        {% if can_manage and event.is_registration_open %}
+            <a href="{% url 'events:event_register_member' event.id %}" class="btn btn-primary">+ Register Member</a>
+        {% endif %}
+        <a href="{% url 'events:event_export_attendees' event.id %}?format=excel" class="btn btn-secondary">Export Excel</a>
+        <a href="{% url 'events:event_export_attendees' event.id %}?format=csv" class="btn btn-secondary">Export CSV</a>
+        {% if can_manage %}
+            <a href="{% url 'events:event_edit' event.id %}" class="btn btn-secondary">Edit Event</a>
+            {% if event.status != 'CANCELLED' %}
+                <form method="post" action="{% url 'events:event_cancel' event.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this event?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary" style="color: #b91c1c;">Cancel Event</button>
+                </form>
+            {% endif %}
+        {% endif %}
+        <a href="{% url 'events:event_list' %}" class="btn btn-secondary">&larr; Event List</a>
+    </div>
+</div>
+
+<!-- Event Info Card & Headcount KPI Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Event Details Card -->
+    <div class="card">
+        <h2>Event Schedule &amp; Venue</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 45%;">Date &amp; Time</th>
+                <td>
+                    <strong>{{ event.start_date_time|date:"d M Y" }}</strong><br>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">
+                        {{ event.start_date_time|date:"H:i" }} to {{ event.end_date_time|date:"H:i" }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <th>Venue</th>
+                <td><strong>{{ event.venue }}</strong></td>
+            </tr>
+            <tr>
+                <th>RSVP Deadline</th>
+                <td>
+                    {% if event.registration_deadline %}
+                        {{ event.registration_deadline|date:"d M Y, H:i" }}
+                    {% else %}
+                        Open till event start
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Entry Fees</th>
+                <td>
+                    Member: <strong>{% if event.member_entry_fee > 0 %}₹{{ event.member_entry_fee|floatformat:2 }}{% else %}Free{% endif %}</strong><br>
+                    Guest: <strong>{% if event.guest_entry_fee > 0 %}₹{{ event.guest_entry_fee|floatformat:2 }}{% else %}Free{% endif %}</strong>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">(Max {{ event.max_guests_per_member }} guests/member)</span>
+                </td>
+            </tr>
+            {% if event.description %}
+            <tr>
+                <th>Description</th>
+                <td style="font-size: 0.85rem; color: #4b5563;">{{ event.description|linebreaksbr }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Attendance KPI Grid -->
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+        <div class="card" style="text-align: center; padding: 0.85rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Confirmed Headcount</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #15803d; margin-top: 0.2rem;">
+                {{ stats.total_headcount }}
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                Across {{ stats.total_registrations }} member{{ stats.total_registrations|pluralize }}
+            </span>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 0.85rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Checked In (At Gate)</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #0284c7; margin-top: 0.2rem;">
+                {{ stats.total_checked_in }}
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                {% if stats.total_headcount > 0 %}{% widthratio stats.total_checked_in stats.total_headcount 100 %}% turnout{% else %}0% turnout{% endif %}
+            </span>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 0.85rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Remaining Capacity</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: {% if stats.is_full %}#dc2626{% else %}#1f2937{% endif %}; margin-top: 0.2rem;">
+                {% if stats.capacity > 0 %}{{ stats.remaining_capacity }}{% else %}&infin;{% endif %}
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                {% if stats.capacity > 0 %}of {{ stats.capacity }} limit{% else %}Unlimited capacity{% endif %}
+            </span>
+        </div>
+
+        <div class="card" style="text-align: center; padding: 0.85rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Fees Expected</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #c2410c; margin-top: 0.2rem;">
+                ₹{{ stats.total_fees|floatformat:2 }}
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                {{ stats.guest_count }} guest{{ stats.guest_count|pluralize }} registered
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Attendee Roster Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 style="font-size: 1.15rem; margin: 0;">Attendee Registrations Roster</h2>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="?checked_in=" class="btn btn-secondary btn-sm" style="{% if not checked_filter %}border-color: var(--primary-color); font-weight: bold;{% endif %}">All</a>
+            <a href="?checked_in=yes" class="btn btn-secondary btn-sm" style="{% if checked_filter == 'yes' %}border-color: #15803d; font-weight: bold;{% endif %}">Checked In</a>
+            <a href="?checked_in=no" class="btn btn-secondary btn-sm" style="{% if checked_filter == 'no' %}border-color: #b45309; font-weight: bold;{% endif %}">Pending Arrival</a>
+        </div>
+    </div>
+
+    {% if registrations %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.65rem;">Gate Check-In</th>
+                    <th style="padding: 0.65rem;">Member</th>
+                    <th style="padding: 0.65rem;">Contact</th>
+                    <th style="padding: 0.65rem;">Department</th>
+                    <th style="padding: 0.65rem; text-align: center;">Family</th>
+                    <th style="padding: 0.65rem; text-align: center;">Guests</th>
+                    <th style="padding: 0.65rem; text-align: center;">Total Headcount</th>
+                    <th style="padding: 0.65rem; text-align: right;">Fee (₹)</th>
+                    <th style="padding: 0.65rem;">Notes</th>
+                    {% if can_manage %}
+                        <th style="padding: 0.65rem; text-align: right;">Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in registrations %}
+                <tr style="border-bottom: 1px solid #f3f4f6; {% if reg.status == 'CANCELLED' %}opacity: 0.5; background: #fafafa;{% endif %}">
+                    <td style="padding: 0.65rem; white-space: nowrap;">
+                        {% if reg.status == 'CONFIRMED' and can_manage %}
+                            <form method="post" action="{% url 'events:event_check_in_toggle' reg.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                {% if reg.checked_in %}
+                                    <button type="submit" class="btn btn-sm" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 0.75rem; padding: 0.2rem 0.5rem;" title="Click to undo arrival check-in">
+                                        &#10003; In ({{ reg.checked_in_at|date:"H:i" }})
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" title="Click to verify arrival at desk">
+                                        Check In
+                                    </button>
+                                {% endif %}
+                            </form>
+                        {% else %}
+                            {% if reg.checked_in %}
+                                <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.75rem;">Checked In</span>
+                            {% else %}
+                                <span class="badge" style="background: #f3f4f6; color: #4b5563; font-size: 0.75rem;">Pending</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.65rem;">
+                        <a href="{% url 'members:member_detail' reg.member.id %}" style="font-weight: 600; color: var(--primary-color); text-decoration: none;">
+                            {{ reg.member.name }}
+                        </a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ reg.member.membership_id }}</div>
+                    </td>
+                    <td style="padding: 0.65rem; font-size: 0.85rem;">{{ reg.member.phone }}</td>
+                    <td style="padding: 0.65rem; font-size: 0.85rem;">{{ reg.member.get_department_display }}</td>
+                    <td style="padding: 0.65rem; text-align: center; font-weight: 600;">{{ reg.num_family_members }}</td>
+                    <td style="padding: 0.65rem; text-align: center; font-weight: 600;">{{ reg.num_guests }}</td>
+                    <td style="padding: 0.65rem; text-align: center; font-weight: bold; color: #1e3a8a;">
+                        {{ reg.total_headcount }}
+                    </td>
+                    <td style="padding: 0.65rem; text-align: right; font-weight: 600;">
+                        {% if reg.calculated_fee > 0 %}
+                            ₹{{ reg.calculated_fee|floatformat:2 }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ reg.get_payment_status_display }}</div>
+                        {% else %}
+                            <span style="color: #15803d; font-size: 0.85rem;">Free</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.65rem; font-size: 0.8rem; color: var(--text-muted); max-width: 180px;">
+                        {{ reg.notes|default:"-" }}
+                    </td>
+                    {% if can_manage %}
+                    <td style="padding: 0.65rem; text-align: right;">
+                        {% if reg.status == 'CONFIRMED' %}
+                            <form method="post" action="{% url 'events:event_cancel_registration' reg.id %}" style="display: inline;" onsubmit="return confirm('Cancel RSVP for {{ reg.member.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; color: #b91c1c; padding: 0.2rem 0.4rem;">
+                                    Cancel
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 0.75rem;">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No registrations recorded for this event yet.</p>
+        {% if can_manage and event.is_registration_open %}
+            <a href="{% url 'events:event_register_member' event.id %}" class="btn btn-primary" style="margin-top: 0.5rem;">+ Register First Attendee</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

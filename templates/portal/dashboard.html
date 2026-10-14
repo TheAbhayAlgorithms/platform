@@ -20,9 +20,11 @@
             {% endif %}
         </p>
     </div>
-    <div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'events:portal_events' %}" class="btn btn-primary">Festival Events &amp; RSVP</a>
         <a href="{% url 'portal:logout' %}" class="btn btn-secondary">Logout</a>
     </div>
+
 </div>
 
 <!-- Key Metrics Row -->

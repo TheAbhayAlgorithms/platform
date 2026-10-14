@@ -33,7 +33,9 @@ INSTALLED_APPS = [
     'portal.apps.PortalConfig',
     'notifications.apps.NotificationsConfig',
     'reports.apps.ReportsConfig',
+    'events.apps.EventsConfig',
 ]
+
 
 
 MIDDLEWARE = [

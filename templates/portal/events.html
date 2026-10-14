@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Festival Celebrations & Events - Member Portal - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Festival Celebrations &amp; Events</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Upcoming cultural evenings, festival gatherings, and sports tournaments for <strong>{{ member.name }}</strong> ({{ member.membership_id }}).
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'portal:dashboard' %}" class="btn btn-secondary">&larr; My Membership</a>
+        <a href="{% url 'portal:logout' %}" class="btn btn-secondary">Logout</a>
+    </div>
+</div>
+
+{% if events_data %}
+<div style="display: flex; flex-direction: column; gap: 1.25rem;">
+    {% for item in events_data %}
+    <div class="card" style="border-left: 4px solid {% if item.is_registered %}#15803d{% else %}var(--primary-color){% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                    <h2 style="font-size: 1.25rem; margin: 0;">{{ item.event.title }}</h2>
+                    <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                        {{ item.event.get_category_display }}
+                    </span>
+                    {% if item.is_registered %}
+                        <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.8rem; font-weight: bold;">
+                            &#10003; RSVP Confirmed
+                        </span>
+                    {% endif %}
+                </div>
+                <div style="font-size: 0.9rem; color: #4b5563;">
+                    <strong>Date:</strong> {{ item.event.start_date_time|date:"l, d F Y" }} &bull;
+                    <strong>Time:</strong> {{ item.event.start_date_time|date:"H:i" }} &ndash; {{ item.event.end_date_time|date:"H:i" }} &bull;
+                    <strong>Venue:</strong> {{ item.event.venue }}
+                </div>
+            </div>
+            <div>
+                {% if item.event.member_entry_fee > 0 %}
+                    <span class="badge" style="background: #fff7ed; color: #c2410c; font-size: 0.85rem; padding: 0.3rem 0.6rem;">
+                        ₹{{ item.event.member_entry_fee|floatformat:2 }} Member Fee
+                    </span>
+                {% else %}
+                    <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.85rem; padding: 0.3rem 0.6rem;">
+                        Free Entry for Members
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if item.event.description %}
+            <p style="font-size: 0.9rem; color: #374151; margin-bottom: 1rem;">
+                {{ item.event.description|linebreaksbr }}
+            </p>
+        {% endif %}
+
+        <!-- Capacity and Deadline notice -->
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; border-top: 1px solid #f3f4f6; padding-top: 0.5rem;">
+            {% if item.event.registration_deadline %}
+                RSVP Deadline: <strong>{{ item.event.registration_deadline|date:"d M Y, H:i" }}</strong> &bull;
+            {% endif %}
+            Remaining Capacity: <strong>{% if item.event.capacity > 0 %}{{ item.remaining_capacity }}{% else %}Unlimited{% endif %}</strong>
+            {% if item.event.guest_entry_fee > 0 %}
+                &bull; Outside Guest Fee: <strong>₹{{ item.event.guest_entry_fee|floatformat:2 }} / guest</strong> (Max {{ item.event.max_guests_per_member }})
+            {% endif %}
+        </div>
+
+        <!-- Registration Status / RSVP Form -->
+        {% if item.is_registered %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <strong style="color: #166534;">Your Registration Details:</strong>
+                    <div style="font-size: 0.85rem; color: #374151; margin-top: 0.25rem;">
+                        Total Headcount: <strong>{{ item.registration.total_headcount }}</strong>
+                        (Member: 1, Family: {{ item.registration.num_family_members }}, Guests: {{ item.registration.num_guests }})
+                        {% if item.registration.calculated_fee > 0 %}
+                            &bull; Fee: <strong>₹{{ item.registration.calculated_fee|floatformat:2 }}</strong> ({{ item.registration.get_payment_status_display }})
+                        {% endif %}
+                    </div>
+                    {% if item.registration.checked_in %}
+                        <div style="font-size: 0.8rem; color: #15803d; font-weight: bold; margin-top: 0.25rem;">
+                            &#10003; Checked in at venue arrival ({{ item.registration.checked_in_at|date:"H:i" }})
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <form method="post" action="{% url 'events:portal_cancel_rsvp' item.registration.id %}" onsubmit="return confirm('Cancel your RSVP for {{ item.event.title }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary btn-sm" style="color: #b91c1c; border-color: #fca5a5;">
+                            Cancel RSVP
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        {% elif item.is_open %}
+            <details style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.75rem;">
+                <summary style="font-weight: 600; color: var(--primary-color); cursor: pointer; font-size: 0.95rem;">
+                    &#9654; Click here to RSVP / Register for this Event
+                </summary>
+                <form method="post" action="{% url 'events:portal_rsvp' item.event.id %}" style="margin-top: 1rem;">
+                    {% csrf_token %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Accompanying Family Members:</label>
+                            <input type="number" name="num_family_members" value="0" min="0" max="10" class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Accompanying Guests (Max {{ item.event.max_guests_per_member }}):</label>
+                            <input type="number" name="num_guests" value="0" min="0" max="{{ item.event.max_guests_per_member }}" class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Special Notes (Dietary, Senior Citizen assistance, etc.):</label>
+                        <input type="text" name="notes" placeholder="Optional notes..." class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary">
+                            Confirm My RSVP &rarr;
+                        </button>
+                    </div>
+                </form>
+            </details>
+
+        {% else %}
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.75rem; color: var(--text-muted); font-size: 0.9rem;">
+                Registration for this event is currently closed or capacity is full.
+            </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+    <p style="font-size: 1.15rem; margin-bottom: 0.5rem;">No upcoming festival celebrations or events scheduled at this moment.</p>
+    <p style="font-size: 0.9rem;">Please check back soon or consult the institute notice board for announcements.</p>
+</div>
+{% endif %}
+{% endblock %}

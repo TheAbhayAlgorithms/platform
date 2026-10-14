@@ -23,7 +23,8 @@
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         {% if not user.profile.is_viewer and not member.is_removed %}
-            <a href="{% url 'members:member_edit' member.id %}" class="btn btn-primary">Edit Profile</a>
+            <a href="{% url 'plans:member_assign' member.id %}" class="btn btn-primary">+ Assign / Renew Plan</a>
+            <a href="{% url 'members:member_edit' member.id %}" class="btn">Edit Profile</a>
         {% endif %}
         {% if user.profile.is_super_admin and not member.is_removed %}
             <a href="{% url 'members:member_delete' member.id %}" class="btn btn-danger">Remove Member</a>
@@ -105,6 +106,62 @@
             <p>Data Protection: Contact details encrypted at rest using AES-256 Fernet.</p>
         </div>
     </div>
+</div>
+
+<!-- Membership Plan & Validity -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2>Membership Plan & Validity</h2>
+        {% if not user.profile.is_viewer and not member.is_removed %}
+            <a href="{% url 'plans:member_assign' member.id %}" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">+ Assign / Renew Plan</a>
+        {% endif %}
+    </div>
+
+    {% with current_plan=member.plan_assignments.first %}
+        {% if current_plan %}
+            <table style="width: 100%; font-size: 0.95rem; margin-bottom: 0.5rem;">
+                <tr>
+                    <th style="width: 30%;">Current Plan</th>
+                    <td><strong>{{ current_plan.plan.name }}</strong> (Base Fee: ₹{{ current_plan.base_fee|floatformat:2 }})</td>
+                </tr>
+                <tr>
+                    <th>Validity Period</th>
+                    <td>
+                        {{ current_plan.start_date|date:"d-m-Y" }} to <strong>{{ current_plan.end_date|date:"d-m-Y" }}</strong>
+                        {% if current_plan.is_expired %}
+                            <span class="badge badge-expired" style="margin-left: 0.5rem;">Expired</span>
+                        {% elif current_plan.is_in_grace_period %}
+                            <span class="badge badge-due" style="margin-left: 0.5rem;">Grace Period</span>
+                        {% else %}
+                            <span class="badge badge-active" style="margin-left: 0.5rem;">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Discount / Concession</th>
+                    <td>
+                        {% if current_plan.discount %}
+                            {{ current_plan.discount.name }} (-₹{{ current_plan.discount_amount|floatformat:2 }})
+                        {% else %}
+                            None
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Final Fee Payable</th>
+                    <td><strong>₹{{ current_plan.final_fee|floatformat:2 }}</strong></td>
+                </tr>
+                {% if current_plan.current_late_fee > 0 %}
+                    <tr style="background-color: #fef2f2;">
+                        <th>Late Fee Penalty</th>
+                        <td style="color: #b91c1c; font-weight: bold;">₹{{ current_plan.current_late_fee|floatformat:2 }}</td>
+                    </tr>
+                {% endif %}
+            </table>
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 0.95rem;">No membership plan currently assigned to this member.</p>
+        {% endif %}
+    {% endwith %}
 </div>
 
 <!-- Family / Dependent Members -->

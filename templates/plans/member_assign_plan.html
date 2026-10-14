@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Plan - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Assign Membership Plan</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Assign or renew plan for: <strong>{{ member.name }}</strong> (<code>{{ member.membership_id }}</code>)
+        </p>
+    </div>
+    <a href="{% url 'members:member_detail' member.id %}" class="btn">&larr; Back to Member Profile</a>
+</div>
+
+{% if current_assignment %}
+<div class="card" style="max-width: 580px; background-color: #f9fafb; margin-bottom: 1.25rem;">
+    <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Current Plan Assignment</h3>
+    <table style="width: 100%; font-size: 0.9rem;">
+        <tr>
+            <th style="width: 40%;">Plan</th>
+            <td><strong>{{ current_assignment.plan.name }}</strong></td>
+        </tr>
+        <tr>
+            <th>Validity Period</th>
+            <td>{{ current_assignment.start_date|date:"d-m-Y" }} to {{ current_assignment.end_date|date:"d-m-Y" }}</td>
+        </tr>
+        <tr>
+            <th>Payable Fee</th>
+            <td>₹{{ current_assignment.final_fee|floatformat:2 }}</td>
+        </tr>
+    </table>
+</div>
+{% endif %}
+
+<div class="card" style="max-width: 580px;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_plan">Select Membership Plan *</label>
+            {{ form.plan }}
+            <p class="help-text">Only active plans can be selected.</p>
+            {% if form.plan.errors %}
+                <div class="error-text">{{ form.plan.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_start_date">Start Date *</label>
+            {{ form.start_date }}
+            <p class="help-text">End date will be automatically computed based on plan duration.</p>
+            {% if form.start_date.errors %}
+                <div class="error-text">{{ form.start_date.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_discount">Optional Concession / Discount Category</label>
+            {{ form.discount }}
+            <p class="help-text">Select if member qualifies for retired/senior concessions.</p>
+            {% if form.discount.errors %}
+                <div class="error-text">{{ form.discount.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_notes">Assignment Remarks / Justification</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+                <div class="error-text">{{ form.notes.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Confirm & Assign Plan</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

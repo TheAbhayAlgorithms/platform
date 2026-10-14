@@ -26,11 +26,13 @@ RailClub Connect is a comprehensive platform built with Python Django to manage 
 platform/
 ├── accounts/               # Module 1: Admin authentication, 2FA OTP, roles & user management
 ├── members/                # Module 2: Member management, family dependents, bulk import, soft deletion
+├── plans/                  # Module 3: Membership plans, validity math, concessions, fee immutability
 ├── core/                   # Core shared utilities, cryptography, base models & context
 ├── railclub/               # Project configuration & settings
 ├── templates/              # Server-rendered HTML templates (Clean & Minimal)
 │   ├── accounts/           # Login, OTP verification, dashboard, user management
 │   ├── members/            # Directory, member detail, add/edit, soft delete, bulk import
+│   ├── plans/              # Plans list, create/edit, concessions, member plan assignment
 │   ├── base.html           # Minimal base layout
 │   └── home.html           # Landing page
 ├── static/css/             # Plain CSS styling (No heavy JS frameworks)
@@ -96,6 +98,22 @@ platform/
 
 ---
 
+## Module 3: Membership Plans & Fee Setup
+
+### Features Built:
+1. **Membership Plans & Validity Rules**:
+   - Configure plans: Annual (12 months), Half-Yearly (6 months), Quarterly (3 months), Festival Special (1 month), and Custom.
+   - Exact calendar validity end-date calculation handling month-ends (e.g. 31-Jan to 28-Feb) and leap years (e.g. 29-Feb).
+   - Configurable grace period (days) and late fee policies (None, Flat amount, or Per-Day rate).
+   - Plan deactivation: deactivated plans cannot be newly assigned to members.
+2. **Concessions & Discounts**:
+   - Category-based deductions: Percentage discount (e.g., 50% for retired railway employees) or Flat amount discount (e.g., ₹300 for senior citizens).
+3. **Fee Immutability & Member Assignment**:
+   - Snapshotting: When a plan is assigned to a member, the base fee and final payable amount are recorded immutably. Future plan fee changes never retroactively alter already-assigned fees.
+   - Automatic suggestion of start date based on previous plan expiry.
+
+---
+
 ## Getting Started
 
 ### 1. Prerequisites
@@ -121,6 +139,7 @@ Ensure `FIELD_ENCRYPTION_KEY` and `BLIND_INDEX_SALT` are properly set.
 python manage.py migrate
 python manage.py seed_accounts
 python manage.py seed_members
+python manage.py seed_plans
 ```
 
 ### 5. Run Automated Tests

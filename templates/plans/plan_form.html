@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <a href="{% url 'plans:plan_list' %}" class="btn">&larr; Back to Plans</a>
+</div>
+
+<div class="card" style="max-width: 580px;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_name">Plan Name *</label>
+            {{ form.name }}
+            <p class="help-text">e.g. Annual Membership, Half-Yearly, Quarterly, Festival-Only</p>
+            {% if form.name.errors %}
+                <div class="error-text">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_fee">Standard Fee (₹ INR) *</label>
+            {{ form.fee }}
+            {% if form.fee.errors %}
+                <div class="error-text">{{ form.fee.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="id_duration_months">Duration (Months)</label>
+                {{ form.duration_months }}
+                <p class="help-text">12 for Annual, 6 for Half-Yearly, 3 for Quarterly.</p>
+                {% if form.duration_months.errors %}
+                    <div class="error-text">{{ form.duration_months.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_duration_days">Duration (Extra Days)</label>
+                {{ form.duration_days }}
+                <p class="help-text">For short-term event plans or custom validity.</p>
+                {% if form.duration_days.errors %}
+                    <div class="error-text">{{ form.duration_days.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="id_grace_period_days">Grace Period (Days) *</label>
+            {{ form.grace_period_days }}
+            <p class="help-text">Days allowed after end date before late fee applies (default: 15 days).</p>
+            {% if form.grace_period_days.errors %}
+                <div class="error-text">{{ form.grace_period_days.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="id_late_fee_type">Late Fee Type</label>
+                {{ form.late_fee_type }}
+                {% if form.late_fee_type.errors %}
+                    <div class="error-text">{{ form.late_fee_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_late_fee_amount">Late Fee Amount (₹)</label>
+                {{ form.late_fee_amount }}
+                {% if form.late_fee_amount.errors %}
+                    <div class="error-text">{{ form.late_fee_amount.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="id_description">Benefits & Entitlements</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="error-text">{{ form.description.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            {{ form.is_active }}
+            <label for="id_is_active" style="margin-bottom: 0;">Plan is Active (can be newly assigned)</label>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Save Plan</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Membership Plans & Fees - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Membership Plans & Fee Setup</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Configure membership tiers, validity durations, grace periods, and late penalty rules.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if not user.profile.is_viewer %}
+            <a href="{% url 'plans:plan_create' %}" class="btn btn-primary">+ Create New Plan</a>
+            <a href="{% url 'plans:discount_create' %}" class="btn">+ Add Concession Rule</a>
+        {% endif %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Plans Table -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Available Membership Plans</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Plan Name</th>
+                    <th>Standard Fee</th>
+                    <th>Validity Duration</th>
+                    <th>Grace Period</th>
+                    <th>Late Fee Policy</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in plans %}
+                <tr {% if not p.is_active %}style="background-color: #f9fafb; opacity: 0.85;"{% endif %}>
+                    <td>
+                        <strong>{{ p.name }}</strong>
+                        {% if p.description %}
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">{{ p.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td><strong>₹{{ p.fee|floatformat:2 }}</strong></td>
+                    <td>{{ p.duration_display }}</td>
+                    <td>{{ p.grace_period_days }} Days</td>
+                    <td>
+                        {% if p.late_fee_type == 'NONE' %}
+                            <span style="color: var(--text-muted);">None</span>
+                        {% elif p.late_fee_type == 'FLAT' %}
+                            ₹{{ p.late_fee_amount|floatformat:2 }} (Flat)
+                        {% elif p.late_fee_type == 'PER_DAY' %}
+                            ₹{{ p.late_fee_amount|floatformat:2 }} / day
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.is_active %}
+                            <span class="badge badge-active">Active</span>
+                        {% else %}
+                            <span class="badge badge-neutral">Deactivated</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not user.profile.is_viewer %}
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <a href="{% url 'plans:plan_edit' p.id %}">Edit</a>
+                                <span>|</span>
+                                <form method="post" action="{% url 'plans:plan_toggle' p.id %}" style="display: inline; margin: 0;">
+                                    {% csrf_token %}
+                                    <button type="submit" style="background: none; border: none; color: #1d4ed8; cursor: pointer; text-decoration: underline; padding: 0; font-family: inherit; font-size: inherit;">
+                                        {% if p.is_active %}Deactivate{% else %}Activate{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Read Only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No membership plans configured yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Discounts & Concessions Table -->
+<div class="card">
+    <h2>Discounts & Concessions (Retired, Senior Citizen, etc.)</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Discount Rate / Amount</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in discounts %}
+                <tr {% if not d.is_active %}style="background-color: #f9fafb; opacity: 0.85;"{% endif %}>
+                    <td><strong>{{ d.name }}</strong></td>
+                    <td>
+                        {% if d.discount_type == 'PERCENTAGE' %}
+                            {{ d.discount_value }}% Off
+                        {% else %}
+                            ₹{{ d.discount_value|floatformat:2 }} Off
+                        {% endif %}
+                    </td>
+                    <td>{{ d.description|default:"-" }}</td>
+                    <td>
+                        {% if d.is_active %}
+                            <span class="badge badge-active">Active</span>
+                        {% else %}
+                            <span class="badge badge-neutral">Deactivated</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not user.profile.is_viewer %}
+                            <form method="post" action="{% url 'plans:discount_toggle' d.id %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" style="background: none; border: none; color: #1d4ed8; cursor: pointer; text-decoration: underline; padding: 0; font-family: inherit; font-size: inherit;">
+                                    {% if d.is_active %}Deactivate{% else %}Activate{% endif %}
+                                </button>
+                            </form>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Read Only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No discount rules configured yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

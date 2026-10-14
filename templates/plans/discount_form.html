@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Concession / Discount Category - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Create Concession / Discount Category</h1>
+    <a href="{% url 'plans:plan_list' %}" class="btn">&larr; Back to Plans</a>
+</div>
+
+<div class="card" style="max-width: 520px;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_name">Category Name *</label>
+            {{ form.name }}
+            <p class="help-text">e.g. Retired Railway Employee (50% Off), Senior Citizen (₹300 Off)</p>
+            {% if form.name.errors %}
+                <div class="error-text">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_discount_type">Discount Type *</label>
+            {{ form.discount_type }}
+            {% if form.discount_type.errors %}
+                <div class="error-text">{{ form.discount_type.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_discount_value">Discount Value *</label>
+            {{ form.discount_value }}
+            <p class="help-text">Enter percentage (e.g. 50.00) or flat amount in ₹ (e.g. 300.00).</p>
+            {% if form.discount_value.errors %}
+                <div class="error-text">{{ form.discount_value.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_description">Description / Eligibility Notes</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="error-text">{{ form.description.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            {{ form.is_active }}
+            <label for="id_is_active" style="margin-bottom: 0;">Category is Active</label>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Save Category</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

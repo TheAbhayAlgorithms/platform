@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'accounts.apps.AccountsConfig',
     'members.apps.MembersConfig',
+    'plans.apps.PlansConfig',
 ]
 
 MIDDLEWARE = [

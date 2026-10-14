@@ -1,5 +1,7 @@
+import re
 import time
 import logging
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -39,15 +41,20 @@ def admin_login_view(request):
     if request.method == 'POST':
         form = AdminLoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username'].strip()
+            login_input = form.cleaned_data['username'].strip()
             password = form.cleaned_data['password']
 
-            try:
-                user = User.objects.get(username__iexact=username)
+            # Support login by username, email, or registered phone number
+            clean_digits = re.sub(r'\D', '', login_input)
+            user = None
+            if clean_digits and len(clean_digits) >= 10:
+                user = User.objects.filter(profile__phone__endswith=clean_digits[-10:]).first()
+            if not user:
+                user = User.objects.filter(username__iexact=login_input).first() or User.objects.filter(email__iexact=login_input).first()
+
+            profile = getattr(user, 'profile', None) if user else None
+            if user and not profile:
                 profile, _ = UserProfile.objects.get_or_create(user=user)
-            except User.DoesNotExist:
-                user = None
-                profile = None
 
             # Check lockout
             if profile and profile.is_locked_out():
@@ -64,12 +71,13 @@ def admin_login_view(request):
                 messages.error(request, "This account has been disabled. Please contact an administrator.")
                 return render(request, 'accounts/login.html', {'form': form})
 
-            # Authenticate credentials
-            authenticated_user = authenticate(request, username=username, password=password)
+            # Authenticate credentials using the user's canonical username
+            auth_username = user.username if user else login_input
+            authenticated_user = authenticate(request, username=auth_username, password=password)
 
             if authenticated_user is not None:
                 # Check 2FA
-                if profile.is_2fa_enabled:
+                if profile and profile.is_2fa_enabled:
                     otp_code = AdminOTP.create_for_user(authenticated_user, purpose='login')
                     phone = profile.phone or "admin-phone"
                     
@@ -78,13 +86,15 @@ def admin_login_view(request):
 
                     request.session['pending_2fa_user_id'] = authenticated_user.id
                     request.session['pending_2fa_next'] = request.GET.get('next', '')
+                    request.session['demo_otp'] = otp_code
                     
-                    messages.info(request, "A 6-digit verification code has been sent via WhatsApp.")
+                    messages.info(request, "A 6-digit verification code has been dispatched.")
                     return redirect('accounts:verify_otp')
                 else:
                     # Direct login if 2FA disabled
                     login(request, authenticated_user)
-                    profile.reset_failed_attempts()
+                    if profile:
+                        profile.reset_failed_attempts()
                     request.session['last_activity'] = int(time.time())
                     next_url = request.GET.get('next') or reverse('accounts:dashboard')
                     return redirect(next_url)
@@ -104,7 +114,7 @@ def admin_login_view(request):
                             f"Invalid credentials. You have {remaining} attempt(s) remaining before lockout."
                         )
                 else:
-                    messages.error(request, "Invalid username or password.")
+                    messages.error(request, "Invalid credentials. Please verify your username/email/phone and password.")
     else:
         form = AdminLoginForm()
 
@@ -151,10 +161,9 @@ def admin_verify_otp_view(request):
                 
                 # Cleanup 2FA session variables
                 next_url = request.session.get('pending_2fa_next') or reverse('accounts:dashboard')
-                if 'pending_2fa_user_id' in request.session:
-                    del request.session['pending_2fa_user_id']
-                if 'pending_2fa_next' in request.session:
-                    del request.session['pending_2fa_next']
+                request.session.pop('pending_2fa_user_id', None)
+                request.session.pop('pending_2fa_next', None)
+                request.session.pop('demo_otp', None)
 
                 request.session['last_activity'] = int(time.time())
                 messages.success(request, f"Welcome back, {user.first_name or user.username}!")
@@ -164,9 +173,12 @@ def admin_verify_otp_view(request):
     else:
         form = OTPVerifyForm()
 
+    demo_otp = request.session.get('demo_otp') if (getattr(settings, 'WHATSAPP_PROVIDER', 'mock') == 'mock' or settings.DEBUG) else None
+
     return render(request, 'accounts/verify_otp.html', {
         'form': form,
         'masked_phone': masked_phone,
+        'demo_otp': demo_otp,
     })
 
 
@@ -185,6 +197,7 @@ def admin_resend_otp_view(request):
     provider = get_whatsapp_provider()
     provider.send_otp(phone, otp_code)
 
+    request.session['demo_otp'] = otp_code
     messages.info(request, "A fresh verification code has been dispatched to your mobile number.")
     return redirect('accounts:verify_otp')
 

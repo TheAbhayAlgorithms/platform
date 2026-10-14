@@ -35,6 +35,7 @@ def member_login(request):
             if success:
                 request.session['pending_member_id'] = member.id
                 request.session['pending_masked_phone'] = mask_phone_number(member.phone)
+                request.session['demo_otp'] = raw_otp
                 messages.info(
                     request,
                     f"A 6-digit OTP has been sent to your registered mobile number "
@@ -83,6 +84,7 @@ def member_verify_otp(request):
                 request.session['member_id'] = member.id
                 request.session.pop('pending_member_id', None)
                 request.session.pop('pending_masked_phone', None)
+                request.session.pop('demo_otp', None)
 
                 messages.success(request, f"Welcome to RailClub Connect, {member.name}!")
                 return redirect('portal:dashboard')
@@ -91,10 +93,13 @@ def member_verify_otp(request):
     else:
         form = MemberOTPVerifyForm()
 
+    demo_otp = request.session.get('demo_otp') if (getattr(settings, 'WHATSAPP_PROVIDER', 'mock') == 'mock' or settings.DEBUG) else None
+
     context = {
         'form': form,
         'member': member,
         'masked_phone': masked_phone,
+        'demo_otp': demo_otp,
     }
     return render(request, 'portal/verify_otp.html', context)
 
@@ -116,6 +121,7 @@ def member_resend_otp(request):
 
     success, error_msg, _, raw_otp = request_portal_otp(member.phone)
     if success:
+        request.session['demo_otp'] = raw_otp
         messages.success(request, "A fresh OTP has been sent to your registered mobile number.")
     else:
         messages.error(request, error_msg)

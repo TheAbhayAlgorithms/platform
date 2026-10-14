@@ -13,6 +13,13 @@
         This code is valid for 5 minutes.
     </p>
 
+    {% if demo_otp %}
+    <div style="background-color: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; text-align: center; font-size: 0.95rem;">
+        ⚡ <strong>Development / Demo Mode:</strong><br>
+        Your Verification OTP is: <strong style="font-size: 1.4rem; letter-spacing: 3px; color: #78350f; display: block; margin-top: 0.25rem;">{{ demo_otp }}</strong>
+    </div>
+    {% endif %}
+
     <form method="post" action="{% url 'accounts:verify_otp' %}">
         {% csrf_token %}
 

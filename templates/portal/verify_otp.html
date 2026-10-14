@@ -11,6 +11,12 @@
                 We sent a 6-digit OTP to your registered mobile number:
                 <br><strong>{{ masked_phone }}</strong>
             </p>
+            {% if demo_otp %}
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; text-align: center; font-size: 0.95rem;">
+                ⚡ <strong>Development / Demo Mode:</strong><br>
+                Your Verification OTP is: <strong style="font-size: 1.4rem; letter-spacing: 3px; color: #78350f; display: block; margin-top: 0.25rem;">{{ demo_otp }}</strong>
+            </div>
+            {% endif %}
         </div>
 
         <form method="post" novalidate>

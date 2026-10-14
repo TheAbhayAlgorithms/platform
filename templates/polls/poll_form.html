@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit {{ poll.title }}{% else %}Create New Election / Poll{% endif %} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if is_edit %}Edit Election / Poll{% else %}Create New Committee Election or Poll{% endif %}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Configure election parameters, voting dates, secret ballot protections, and candidate choices.
+        </p>
+    </div>
+    <a href="{% url 'polls:poll_list' %}" class="btn btn-secondary">&larr; Back to Polls</a>
+</div>
+
+<div class="card" style="max-width: 760px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_title" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Title of Election / Resolution:</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.title.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_poll_type" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Type:</label>
+                {{ form.poll_type }}
+                {% if form.poll_type.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.poll_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_status" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Status:</label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.status.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="id_start_date" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Voting Opens (Start Date):</label>
+                {{ form.start_date }}
+                {% if form.start_date.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.start_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_end_date" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Voting Closes (End Date):</label>
+                {{ form.end_date }}
+                {% if form.end_date.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.end_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="id_description" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Guidelines &amp; Election Context:</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.description.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem; padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                {{ form.is_secret_ballot }} Enable Secret Ballot (Confidential Anonymity)
+            </label>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 0 1.5rem;">
+                When checked, member voting participation is recorded to prevent double voting, but voter identity is strictly dissociated from the cast candidate/option choice.
+            </p>
+        </div>
+
+        {% if not is_edit %}
+        <!-- Initial Candidates / Choices Section -->
+        <div style="margin-bottom: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Initial Candidates / Options (At least 2 required)</h3>
+            <div id="options-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="text" name="option_text" placeholder="Candidate / Choice 1" class="form-control" required style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <input type="text" name="option_desc" placeholder="Bio / Designation / Notes (optional)" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="text" name="option_text" placeholder="Candidate / Choice 2" class="form-control" required style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <input type="text" name="option_desc" placeholder="Bio / Designation / Notes (optional)" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="text" name="option_text" placeholder="Candidate / Choice 3 (optional)" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <input type="text" name="option_desc" placeholder="Bio / Designation / Notes (optional)" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.65rem; margin-top: 0.5rem;" onclick="addOptionRow()">+ Add Another Option</button>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                {% if is_edit %}Save Changes{% else %}Create Election / Poll{% endif %}
+            </button>
+            <a href="{% url 'polls:poll_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addOptionRow() {
+    var container = document.getElementById('options-container');
+    var count = container.children.length + 1;
+    var div = document.createElement('div');
+    div.style = 'display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;';
+    div.innerHTML = '<input type="text" name="option_text" placeholder="Candidate / Choice ' + count + '" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">' +
+                    '<input type="text" name="option_desc" placeholder="Bio / Notes (optional)" class="form-control" style="padding: 0.45rem; border: 1px solid #d1d5db; border-radius: 4px;">';
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

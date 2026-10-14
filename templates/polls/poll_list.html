@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Committee Elections & Member Polls - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Committee Elections &amp; Member Polls</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Managing committee elections, AGM resolution ballots, and institute opinion surveys.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if can_manage %}
+            <a href="{% url 'polls:poll_create' %}" class="btn btn-primary">+ Create New Election / Poll</a>
+        {% endif %}
+        <a href="{% url 'polls:feedback_list' %}" class="btn btn-secondary">&equiv; Member Feedback</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="?status=&type={{ type_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if not status_filter %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Polls</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?status=OPEN&type={{ type_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'OPEN' %}border-color: #15803d; background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Voting Open</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">{{ counts.open }}</div>
+        </div>
+    </a>
+    <a href="?status=CLOSED&type={{ type_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'CLOSED' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.85rem; color: #0284c7; font-weight: 600;">Voting Closed</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">{{ counts.closed }}</div>
+        </div>
+    </a>
+    <a href="?status=DRAFT&type={{ type_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'DRAFT' %}border-color: #6b7280; background: #f9fafb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #6b7280; font-weight: 600;">Draft</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #4b5563; margin-top: 0.25rem;">{{ counts.draft }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="q" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Search Polls:</label>
+            <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="Search title or description..." class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="type" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Type:</label>
+            <select id="type" name="type" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Types --</option>
+                {% for t_val, t_label in type_choices %}
+                    <option value="{{ t_val }}" {% if type_filter == t_val %}selected{% endif %}>{{ t_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="status" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Status:</label>
+            <select id="status" name="status" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Statuses --</option>
+                {% for s_val, s_label in status_choices %}
+                    <option value="{{ s_val }}" {% if status_filter == s_val %}selected{% endif %}>{{ s_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem;">Filter</button>
+            {% if search_query or status_filter or type_filter %}
+                <a href="{% url 'polls:poll_list' %}" class="btn btn-secondary" style="padding: 0.45rem 0.75rem;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Polls Table -->
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Title &amp; Type</th>
+                    <th style="padding: 0.75rem 0.5rem;">Voting Window</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Ballots Cast</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Secret Ballot</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in page_obj %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong><a href="{% url 'polls:poll_detail' p.id %}">{{ p.title }}</a></strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                            <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ p.get_poll_type_display }}</span>
+                            &bull; {{ p.options.count }} candidates/choices
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ p.start_date|date:"d-m-Y" }}</strong> to <strong>{{ p.end_date|date:"d-m-Y" }}</strong>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <span style="font-weight: bold; font-size: 1.05rem; color: #1e3a8a;">{{ p.total_votes }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if p.is_secret_ballot %}
+                            <span class="badge badge-active" style="font-size: 0.75rem;">Secret Ballot</span>
+                        {% else %}
+                            <span class="badge badge-neutral" style="font-size: 0.75rem;">Open Poll</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if p.status == 'OPEN' %}
+                            <span class="badge badge-active">Voting Open</span>
+                        {% elif p.status == 'CLOSED' %}
+                            <span class="badge badge-neutral">Closed</span>
+                        {% elif p.status == 'DRAFT' %}
+                            <span class="badge badge-due">Draft</span>
+                        {% else %}
+                            <span class="badge badge-expired">{{ p.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'polls:poll_detail' p.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Results &amp; Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No elections or polls found matching the filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&type={{ type_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&larr; Previous</a>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&type={{ type_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

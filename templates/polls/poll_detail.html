@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ poll.title }} - Results & Audit - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <h1>{{ poll.title }}</h1>
+            {% if poll.status == 'OPEN' %}
+                <span class="badge badge-active">Voting Open</span>
+            {% elif poll.status == 'CLOSED' %}
+                <span class="badge badge-neutral">Voting Closed</span>
+            {% elif poll.status == 'DRAFT' %}
+                <span class="badge badge-due">Draft</span>
+            {% else %}
+                <span class="badge badge-expired">{{ poll.get_status_display }}</span>
+            {% endif %}
+            {% if poll.is_secret_ballot %}
+                <span class="badge badge-active" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">Secret Ballot</span>
+            {% else %}
+                <span class="badge badge-neutral">Open Poll</span>
+            {% endif %}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Type: <strong>{{ poll.get_poll_type_display }}</strong> &bull;
+            Period: <strong>{{ poll.start_date|date:"d-m-Y" }}</strong> to <strong>{{ poll.end_date|date:"d-m-Y" }}</strong>
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'polls:poll_export_csv' poll.id %}" class="btn btn-secondary">&#128190; Export CSV</a>
+        {% if can_manage %}
+            <a href="{% url 'polls:poll_edit' poll.id %}" class="btn btn-secondary">Edit Poll</a>
+        {% endif %}
+        <a href="{% url 'polls:poll_list' %}" class="btn btn-secondary">&larr; Back to Polls</a>
+    </div>
+</div>
+
+<!-- Metrics Overview -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Ballots Cast</span>
+        <div style="font-size: 2rem; font-weight: bold; color: #1e3a8a; margin-top: 0.25rem;">{{ poll.total_votes }}</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Eligible Active Members</span>
+        <div style="font-size: 2rem; font-weight: bold; color: #4b5563; margin-top: 0.25rem;">{{ total_members }}</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Turnout Rate</span>
+        <div style="font-size: 2rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">
+            {% if total_members > 0 %}
+                {% widthratio poll.total_votes total_members 100 %}%
+            {% else %}
+                0%
+            {% endif %}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Leading Candidate / Choice</span>
+        <div style="font-size: 1.15rem; font-weight: bold; color: #1e3a8a; margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {% with leader=poll.get_leading_option %}
+                {% if leader and leader.votes_count > 0 %}
+                    {{ leader.text }} ({{ leader.votes_count }})
+                {% else %}
+                    <span style="color: var(--text-muted); font-size: 0.95rem;">No votes cast yet</span>
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Results & Candidates -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Live Voting Results -->
+        <div class="card">
+            <h2>Live Voting Results &amp; Distribution</h2>
+            {% if poll.description %}
+                <p style="font-size: 0.9rem; color: #4b5563; margin-bottom: 1.25rem;">{{ poll.description|linebreaksbr }}</p>
+            {% endif %}
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for opt in options %}
+                <div style="padding: 1rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong style="font-size: 1rem; color: #111827;">{{ opt.text }}</strong>
+                            {% if opt.description %}
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ opt.description }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 1.1rem; font-weight: bold; color: #1e3a8a;">{{ opt.votes_count }} votes</span>
+                            <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;">({{ opt.vote_percentage }}%)</span>
+                        </div>
+                    </div>
+                    <!-- Visual Progress Bar -->
+                    <div style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden;">
+                        <div style="width: {{ opt.vote_percentage }}%; height: 100%; background: #15803d; border-radius: 6px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted);">No candidates or options configured yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Participation Voter Audit -->
+        <div class="card">
+            <h2>Voter Participation Audit ({{ poll.voters.count }})</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                {% if poll.is_secret_ballot %}
+                    <strong>Secret Ballot Protected:</strong> Member participation is logged to guarantee strictly one vote per employee. Individual candidate choice is confidential.
+                {% else %}
+                    Open poll participation log.
+                {% endif %}
+            </p>
+            <div style="max-height: 280px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #e5e7eb; text-align: left; color: var(--text-muted);">
+                            <th style="padding: 0.4rem;">Member</th>
+                            <th style="padding: 0.4rem;">Department</th>
+                            <th style="padding: 0.4rem; text-align: right;">Voted At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in poll.voters.all %}
+                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                            <td style="padding: 0.4rem;"><strong>{{ v.member.name }}</strong> ({{ v.member.membership_id }})</td>
+                            <td style="padding: 0.4rem; color: var(--text-muted);">{{ v.member.get_department_display }}</td>
+                            <td style="padding: 0.4rem; text-align: right; color: var(--text-muted);">{{ v.voted_at|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">No members have voted yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Actions & Option Management -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Management Actions -->
+        {% if can_manage %}
+        <div class="card">
+            <h2>Management Actions</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% if poll.status == 'OPEN' %}
+                <form method="post" action="{% url 'polls:poll_close' poll.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width: 100%;" onclick="return confirm('Close voting for this election? Members will no longer be able to cast ballots.');">
+                        &times; Close Voting
+                    </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'polls:poll_export_csv' poll.id %}" class="btn btn-secondary" style="text-align: center;">
+                    &#128190; Download Results (CSV)
+                </a>
+
+                <a href="{% url 'polls:poll_edit' poll.id %}" class="btn btn-secondary" style="text-align: center;">
+                    Edit Parameters &amp; Dates
+                </a>
+            </div>
+        </div>
+
+        <!-- Add Candidate Option Form -->
+        <div class="card">
+            <h2>Add Candidate / Option</h2>
+            <form method="post" action="{% url 'polls:poll_option_add' poll.id %}">
+                {% csrf_token %}
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="id_text" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Candidate / Option Title:</label>
+                    {{ option_form.text }}
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="id_description" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Description / Bio:</label>
+                    {{ option_form.description }}
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">+ Add Option</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -21,6 +21,8 @@
         </p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'polls:portal_polls' %}" class="btn btn-secondary">Elections &amp; Polls</a>
+        <a href="{% url 'polls:portal_feedback' %}" class="btn btn-secondary">Feedback &amp; Suggestions</a>
         <a href="{% url 'bookings:portal_bookings' %}" class="btn btn-secondary">Hall &amp; Lawn Bookings</a>
         <a href="{% url 'events:portal_events' %}" class="btn btn-primary">Festival Events &amp; RSVP</a>
         <a href="{% url 'portal:logout' %}" class="btn btn-secondary">Logout</a>

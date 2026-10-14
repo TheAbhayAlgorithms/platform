@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'reports.apps.ReportsConfig',
     'events.apps.EventsConfig',
     'bookings.apps.BookingsConfig',
+    'polls.apps.PollsConfig',
 ]
 
 

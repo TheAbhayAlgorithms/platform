@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Feedback & Suggestions - Member Portal - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Feedback &amp; Suggestions Box</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Direct channel to the Institute Managing Committee. We welcome suggestions, complaints, and facility feedback.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'portal:dashboard' %}" class="btn btn-secondary">&larr; My Membership</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Submit New Feedback Form -->
+    <div class="card">
+        <h2>Submit Feedback or Grievance</h2>
+        <form method="post">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_category" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Category:</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_subject" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Subject / Title:</label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.subject.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_rating" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Satisfaction Rating (Optional):</label>
+                {{ form.rating }}
+                {% if form.rating.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.rating.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label for="id_message" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Your Feedback / Detailed Suggestion:</label>
+                {{ form.message }}
+                {% if form.message.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ form.message.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Submit Feedback to Institute Office
+            </button>
+        </form>
+    </div>
+
+    <!-- Right Column: My Feedback History & Responses -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="card">
+            <h2>My Feedback History</h2>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for fb in my_feedbacks %}
+                <div style="padding: 1rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
+                        <strong style="color: #1e3a8a; font-size: 0.95rem;">{{ fb.subject }}</strong>
+                        {% if fb.status == 'SUBMITTED' %}
+                            <span class="badge badge-due" style="font-size: 0.75rem;">Under Review</span>
+                        {% elif fb.status == 'UNDER_REVIEW' %}
+                            <span class="badge badge-neutral" style="font-size: 0.75rem;">Under Review</span>
+                        {% elif fb.status == 'RESOLVED' %}
+                            <span class="badge badge-active" style="font-size: 0.75rem;">Resolved</span>
+                        {% else %}
+                            <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ fb.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ fb.get_category_display }}</span>
+                        &bull; {{ fb.created_at|date:"d-m-Y" }}
+                        {% if fb.rating %}
+                            &bull; <span style="color: #f59e0b;">★ {{ fb.rating }}/5</span>
+                        {% endif %}
+                    </div>
+                    <p style="font-size: 0.85rem; color: #374151; margin-bottom: 0.5rem; line-height: 1.5;">{{ fb.message }}</p>
+
+                    {% if fb.admin_response %}
+                    <div style="margin-top: 0.5rem; padding: 0.75rem; background: #f0fdf4; border-left: 3px solid #15803d; border-radius: 4px; font-size: 0.85rem;">
+                        <strong style="color: #15803d; display: block; margin-bottom: 0.25rem;">Institute Office Response:</strong>
+                        <div style="color: #166534; line-height: 1.4;">{{ fb.admin_response|linebreaksbr }}</div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                            Responded on {{ fb.responded_at|date:"d-m-Y" }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.5rem 0;">
+                    You have not submitted any feedback yet.
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Community Board -->
+        {% if public_feedbacks %}
+        <div class="card">
+            <h2>Community Suggestions Board</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for pfb in public_feedbacks %}
+                <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 4px; background: #fff;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                        <strong>{{ pfb.subject }}</strong>
+                        <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ pfb.get_category_display }}</span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #4b5563; margin-bottom: 0.25rem;">{{ pfb.message|truncatewords:25 }}</p>
+                    {% if pfb.admin_response %}
+                        <div style="font-size: 0.75rem; color: #15803d; background: #f0fdf4; padding: 0.4rem; border-radius: 3px;">
+                            <strong>Office Note:</strong> {{ pfb.admin_response|truncatewords:20 }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

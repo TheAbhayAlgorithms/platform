@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Elections & Member Polls - Member Portal - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Elections, AGM Resolutions &amp; Polls</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Exercise your democratic voting rights as an active railway institute member.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'portal:dashboard' %}" class="btn btn-secondary">&larr; My Membership</a>
+    </div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    {% for poll in polls %}
+    <div class="card" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+                <h2 style="margin: 0; font-size: 1.25rem; color: #1e3a8a;">{{ poll.title }}</h2>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ poll.get_poll_type_display }}</span>
+                    &bull; Voting Period: <strong>{{ poll.start_date|date:"d-m-Y" }}</strong> to <strong>{{ poll.end_date|date:"d-m-Y" }}</strong>
+                    {% if poll.is_secret_ballot %}
+                        &bull; <span style="color: #0369a1; font-weight: 600;">Secret Ballot</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                {% if poll.id in voted_poll_ids %}
+                    <span class="badge badge-active" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&check; Your Ballot is Recorded</span>
+                {% elif poll.is_active_for_voting %}
+                    <span class="badge badge-due" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Voting Open</span>
+                {% else %}
+                    <span class="badge badge-neutral" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Voting Closed</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if poll.description %}
+            <p style="font-size: 0.9rem; color: #4b5563; margin-bottom: 1.25rem;">{{ poll.description|linebreaksbr }}</p>
+        {% endif %}
+
+        {% if poll.id in voted_poll_ids %}
+            <!-- Member Already Voted: Show Results if closed, or confirmation -->
+            <div style="padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; margin-top: 0.5rem;">
+                <p style="font-weight: 600; color: #15803d; margin: 0 0 0.5rem 0;">
+                    &check; You have successfully participated in this vote.
+                </p>
+                {% if poll.is_secret_ballot %}
+                    <p style="font-size: 0.85rem; color: #4b5563; margin: 0;">
+                        Your ballot was recorded anonymously under Institute Secret Ballot regulations. Results will be certified upon close of voting.
+                    </p>
+                {% endif %}
+            </div>
+
+            {% if poll.status == 'CLOSED' %}
+            <div style="margin-top: 1rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Final Certified Results</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for opt in poll.options.all %}
+                    <div style="padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.25rem;">
+                            <strong>{{ opt.text }}</strong>
+                            <span>{{ opt.votes_count }} votes ({{ opt.vote_percentage }}%)</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                            <div style="width: {{ opt.vote_percentage }}%; height: 100%; background: #1e3a8a;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        {% elif poll.is_active_for_voting %}
+            <!-- Member Can Vote -->
+            <form method="post" action="{% url 'polls:portal_vote' poll.id %}">
+                {% csrf_token %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    {% for opt in poll.options.all %}
+                    <label style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; background: #fff;" onmouseover="this.style.borderColor='#1e3a8a'" onmouseout="this.style.borderColor='#d1d5db'">
+                        <input type="radio" name="option_id" value="{{ opt.id }}" style="margin-top: 0.25rem;" required>
+                        <div style="flex: 1;">
+                            <strong style="font-size: 0.95rem; color: #111827;">{{ opt.text }}</strong>
+                            {% if opt.description %}
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">{{ opt.description }}</div>
+                            {% endif %}
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">
+                        {% if poll.is_secret_ballot %}
+                            &#128274; Strictly confidential secret ballot. Once submitted, vote cannot be modified.
+                        {% endif %}
+                    </span>
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Confirm submitting your ballot for this election?');">
+                        Submit Official Ballot
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <!-- Poll Closed, Member Did Not Vote -->
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                Voting for this election is closed.
+            </p>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="card" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        No elections or polls are currently scheduled.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Feedback & Grievances - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Member Feedback &amp; Grievances</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Suggestions, complaints, and compliments submitted by railway employees regarding club amenities.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'polls:poll_list' %}" class="btn btn-secondary">&equiv; Elections &amp; Polls</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="?status=&category={{ category_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if not status_filter %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Feedback</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?status=SUBMITTED&category={{ category_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'SUBMITTED' %}border-color: #d97706; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #d97706; font-weight: 600;">Pending Review</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #d97706; margin-top: 0.25rem;">{{ counts.submitted }}</div>
+        </div>
+    </a>
+    <a href="?status=UNDER_REVIEW&category={{ category_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'UNDER_REVIEW' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.85rem; color: #0284c7; font-weight: 600;">Under Review</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">{{ counts.under_review }}</div>
+        </div>
+    </a>
+    <a href="?status=RESOLVED&category={{ category_filter }}&q={{ search_query }}" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'RESOLVED' %}border-color: #15803d; background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Resolved</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">{{ counts.resolved }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+    <form method="get" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="q" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Search Feedback:</label>
+            <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="Subject, message, or member name..." class="form-control" style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="category" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Category:</label>
+            <select id="category" name="category" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Categories --</option>
+                {% for c_val, c_label in category_choices %}
+                    <option value="{{ c_val }}" {% if category_filter == c_val %}selected{% endif %}>{{ c_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="status" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Status:</label>
+            <select id="status" name="status" class="form-control" style="padding: 0.45rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="">-- All Statuses --</option>
+                {% for s_val, s_label in status_choices %}
+                    <option value="{{ s_val }}" {% if status_filter == s_val %}selected{% endif %}>{{ s_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem;">Filter</button>
+            {% if search_query or status_filter or category_filter %}
+                <a href="{% url 'polls:feedback_list' %}" class="btn btn-secondary" style="padding: 0.45rem 0.75rem;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Feedback Table -->
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Date</th>
+                    <th style="padding: 0.75rem 0.5rem;">Member</th>
+                    <th style="padding: 0.75rem 0.5rem;">Category</th>
+                    <th style="padding: 0.75rem 0.5rem;">Subject &amp; Snippet</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Rating</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fb in page_obj %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem; white-space: nowrap; color: var(--text-muted); font-size: 0.8rem;">
+                        {{ fb.created_at|date:"d-m-Y" }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <a href="{% url 'members:member_detail' fb.member.id %}"><strong>{{ fb.member.name }}</strong></a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ fb.member.membership_id }} &bull; {{ fb.member.get_department_display }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ fb.get_category_display }}</span>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong><a href="{% url 'polls:feedback_detail' fb.id %}">{{ fb.subject }}</a></strong>
+                        <div style="font-size: 0.8rem; color: #4b5563; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ fb.message }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if fb.rating %}
+                            <span style="color: #f59e0b; font-size: 0.85rem;">★ {{ fb.rating }}/5</span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if fb.status == 'SUBMITTED' %}
+                            <span class="badge badge-due">Pending</span>
+                        {% elif fb.status == 'UNDER_REVIEW' %}
+                            <span class="badge badge-neutral">Under Review</span>
+                        {% elif fb.status == 'RESOLVED' %}
+                            <span class="badge badge-active">Resolved</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ fb.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        <a href="{% url 'polls:feedback_detail' fb.id %}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Respond</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No member feedback entries found matching the filter criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&category={{ category_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&larr; Previous</a>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&category={{ category_filter }}&q={{ search_query }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

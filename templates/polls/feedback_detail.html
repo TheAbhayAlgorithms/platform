@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Feedback #{{ feedback.id }} - {{ feedback.subject }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1>Feedback #{{ feedback.id }}</h1>
+            {% if feedback.status == 'SUBMITTED' %}
+                <span class="badge badge-due">Pending Review</span>
+            {% elif feedback.status == 'UNDER_REVIEW' %}
+                <span class="badge badge-neutral">Under Review</span>
+            {% elif feedback.status == 'RESOLVED' %}
+                <span class="badge badge-active">Resolved</span>
+            {% else %}
+                <span class="badge badge-neutral">{{ feedback.get_status_display }}</span>
+            {% endif %}
+            <span class="badge badge-neutral">{{ feedback.get_category_display }}</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Submitted on {{ feedback.created_at|date:"d M Y, h:i A" }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'polls:feedback_list' %}" class="btn btn-secondary">&larr; Back to Feedback List</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1.25fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Member & Feedback Message -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Grievance Message -->
+        <div class="card">
+            <h2>{{ feedback.subject }}</h2>
+            <div style="margin-bottom: 1rem; color: #374151; font-size: 0.95rem; line-height: 1.6; white-space: pre-line;">
+                {{ feedback.message }}
+            </div>
+            {% if feedback.rating %}
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6; font-size: 0.9rem;">
+                    <strong>Satisfaction Rating:</strong>
+                    <span style="color: #f59e0b; font-size: 1rem; margin-left: 0.5rem;">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= feedback.rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                        ({{ feedback.rating }}/5)
+                    </span>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Member Information -->
+        <div class="card">
+            <h2>Member Information</h2>
+            <table style="width: 100%; font-size: 0.9rem;">
+                <tr>
+                    <th style="width: 35%;">Name</th>
+                    <td>
+                        <a href="{% url 'members:member_detail' feedback.member.id %}"><strong>{{ feedback.member.name }}</strong></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Membership ID</th>
+                    <td><code>{{ feedback.member.membership_id }}</code></td>
+                </tr>
+                <tr>
+                    <th>Department</th>
+                    <td>{{ feedback.member.get_department_display }}</td>
+                </tr>
+                <tr>
+                    <th>Mobile</th>
+                    <td>{{ feedback.member.mobile_number }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Administrative Response & Status Update -->
+    <div class="card">
+        <h2>Institute Office Response</h2>
+        {% if feedback.responded_at %}
+            <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; font-size: 0.85rem;">
+                <strong style="color: #15803d;">Last Responded:</strong> {{ feedback.responded_at|date:"d-m-Y H:i" }}<br>
+                {% if feedback.responded_by %}
+                    <span style="color: var(--text-muted);">By: {{ feedback.responded_by.username }}</span>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if can_manage %}
+        <form method="post" action="{% url 'polls:feedback_respond' feedback.id %}">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_status" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Update Status:</label>
+                {{ response_form.status }}
+                {% if response_form.status.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ response_form.status.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="id_admin_response" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Official Resolution / Response Note:</label>
+                {{ response_form.admin_response }}
+                {% if response_form.admin_response.errors %}
+                    <div style="color: #b91c1c; font-size: 0.8rem;">{{ response_form.admin_response.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.85rem; cursor: pointer;">
+                    {{ response_form.is_public }} Publish on Community Suggestions Board
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Save Official Response
+            </button>
+        </form>
+        {% else %}
+            {% if feedback.admin_response %}
+                <div style="font-size: 0.9rem; line-height: 1.5; color: #374151;">
+                    {{ feedback.admin_response|linebreaksbr }}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.9rem;">No response recorded yet.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

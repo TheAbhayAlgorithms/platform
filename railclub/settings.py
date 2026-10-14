@@ -37,7 +37,11 @@ INSTALLED_APPS = [
     'bookings.apps.BookingsConfig',
     'polls.apps.PollsConfig',
     'expenses.apps.ExpensesConfig',
+    'backups.apps.BackupsConfig',
 ]
+
+BACKUP_STORAGE_DIR = BASE_DIR / 'backups_storage'
+BACKUP_RETENTION_DAYS = 30
 
 
 

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Automated Backups & Disaster Recovery - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Automated Backups &amp; Disaster Recovery</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Database snapshot archives, cryptographic SHA-256 integrity verification, and automated retention management.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <form method="post" action="{% url 'backups:trigger' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Generate an immediate full database snapshot now?');">
+                &#128190; Trigger Manual Snapshot Now
+            </button>
+        </form>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Key Metrics Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Backups Archived</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #1e3a8a; margin-top: 0.25rem;">{{ stats.total_count }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ stats.success_count }} verified &bull; {{ stats.failed_count }} failed</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Last Successful Snapshot</span>
+        <div style="font-size: 1.25rem; font-weight: bold; color: #15803d; margin-top: 0.5rem;">
+            {% if stats.last_backup %}
+                {{ stats.last_backup.created_at|date:"d M Y, h:i A" }}
+            {% else %}
+                <span style="color: var(--text-muted);">No backups yet</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Storage Used</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #4b5563; margin-top: 0.25rem;">{{ stats.total_storage }}</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem; background: #f0fdf4; border-color: #15803d;">
+        <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Retention Policy</span>
+        <div style="font-size: 1.85rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">{{ stats.retention_days }} Days</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">Older archives auto-purged</div>
+    </div>
+</div>
+
+<!-- Backups History Table -->
+<div class="card">
+    <h2>Database Backup Archives</h2>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; background: #f9fafb; text-align: left;">
+                    <th style="padding: 0.75rem 0.5rem;">Backup ID &amp; Type</th>
+                    <th style="padding: 0.75rem 0.5rem;">File Name &amp; SHA-256 Checksum</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Records</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Size</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Status</th>
+                    <th style="padding: 0.75rem 0.5rem;">Date &amp; Initiator</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in page_obj %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <strong>{{ b.backup_id }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                            <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ b.get_backup_type_display }}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem;">
+                        <code style="font-size: 0.85rem;">{{ b.file_name }}</code>
+                        {% if b.checksum %}
+                            <div style="font-size: 0.7rem; color: #6b7280; font-family: monospace; margin-top: 0.2rem;" title="{{ b.checksum }}">
+                                SHA-256: {{ b.checksum|slice:":24" }}...
+                            </div>
+                        {% endif %}
+                        {% if b.error_message %}
+                            <div style="font-size: 0.75rem; color: #b91c1c;">Error: {{ b.error_message }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center; font-weight: 600;">
+                        {{ b.total_records }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right; font-weight: 600; color: #1e3a8a;">
+                        {{ b.file_size_display }}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if b.status == 'SUCCESS' %}
+                            <span class="badge badge-active" style="font-size: 0.75rem;">Verified</span>
+                        {% elif b.status == 'IN_PROGRESS' %}
+                            <span class="badge badge-due" style="font-size: 0.75rem;">In Progress</span>
+                        {% elif b.status == 'FAILED' %}
+                            <span class="badge badge-expired" style="font-size: 0.75rem;">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                        {{ b.created_at|date:"d-m-Y H:i" }}<br>
+                        {% if b.created_by %}By: {{ b.created_by.username }}{% else %}Automated Task{% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                        {% if b.status == 'SUCCESS' %}
+                        <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                            <a href="{% url 'backups:download' b.id %}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Download</a>
+                            <form method="post" action="{% url 'backups:verify' b.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Verify</button>
+                            </form>
+                        </div>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">&mdash;</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        No database backup snapshots recorded yet. Click "Trigger Manual Snapshot Now" to create your first archive.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">&larr; Previous</a>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

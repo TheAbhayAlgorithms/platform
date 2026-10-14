@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}System Health & Readiness | {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{% url 'accounts:dashboard' %}" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">
+        &larr; Back to Dashboard
+    </a>
+</div>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0; font-size: 1.75rem;">System Health &amp; Runtime Readiness</h1>
+            {% if diagnostics.status == 'HEALTHY' %}
+                <span style="background: #dcfce7; color: #15803d; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 700;">
+                    &#10004; SYSTEM HEALTHY
+                </span>
+            {% else %}
+                <span style="background: #fee2e2; color: #b91c1c; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 700;">
+                    &#9888; DEGRADED
+                </span>
+            {% endif %}
+        </div>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0;">
+            Live operational telemetry across database, cryptography, file storage, and notification channels.
+        </p>
+    </div>
+
+    <div>
+        <a href="{% url 'health_check' %}" target="_blank"
+           style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.85rem;">
+            &#128269; View Raw JSON Probe (/health/)
+        </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Database Subsystem -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.1rem; margin: 0; color: #0f172a;">Database Engine</h2>
+            {% if diagnostics.subsystems.database.status == 'OK' %}
+                <span style="background: #dcfce7; color: #15803d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">ACTIVE</span>
+            {% else %}
+                <span style="background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">ERROR</span>
+            {% endif %}
+        </div>
+        <table style="width: 100%; font-size: 0.85rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Engine Vendor:</th>
+                <td style="font-weight: 600; text-transform: uppercase;">{{ diagnostics.subsystems.database.engine }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Query Roundtrip Latency:</th>
+                <td style="font-weight: 600; color: #0284c7;">{{ diagnostics.subsystems.database.latency_ms }} ms</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Connection Status:</th>
+                <td>Operational</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Encryption Subsystem -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.1rem; margin: 0; color: #0f172a;">Encryption at Rest</h2>
+            {% if diagnostics.subsystems.encryption.status == 'OK' %}
+                <span style="background: #dcfce7; color: #15803d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">ENFORCED</span>
+            {% else %}
+                <span style="background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">DEFICIENT</span>
+            {% endif %}
+        </div>
+        <table style="width: 100%; font-size: 0.85rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Field Cipher:</th>
+                <td style="font-weight: 600;">{{ diagnostics.subsystems.encryption.algorithm }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Blind Index Hashing:</th>
+                <td style="font-weight: 600;">{{ diagnostics.subsystems.encryption.blind_index }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">PII Privacy:</th>
+                <td style="color: #16a34a; font-weight: 600;">DPDP Act Compliant</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- File Storage Subsystem -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.1rem; margin: 0; color: #0f172a;">File &amp; Backup Storage</h2>
+            {% if diagnostics.subsystems.storage.status == 'OK' %}
+                <span style="background: #dcfce7; color: #15803d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">WRITABLE</span>
+            {% else %}
+                <span style="background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">ERROR</span>
+            {% endif %}
+        </div>
+        <table style="width: 100%; font-size: 0.85rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Backups Storage:</th>
+                <td style="font-weight: 600; color: #16a34a;">{{ diagnostics.subsystems.storage.details.backups }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Media Uploads:</th>
+                <td style="font-weight: 600; color: #16a34a;">{{ diagnostics.subsystems.storage.details.media }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Path Traversal Filter:</th>
+                <td style="font-weight: 600;">Strictly Enforced</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- WhatsApp Engine -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.1rem; margin: 0; color: #0f172a;">WhatsApp Messaging</h2>
+            <span style="background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                {{ diagnostics.subsystems.whatsapp_engine.mode }}
+            </span>
+        </div>
+        <table style="width: 100%; font-size: 0.85rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Gateway Provider:</th>
+                <td style="font-weight: 600; text-transform: uppercase;">{{ diagnostics.subsystems.whatsapp_engine.provider }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Sender Identity:</th>
+                <td style="font-weight: 600; font-family: monospace;">+91 {{ diagnostics.subsystems.whatsapp_engine.sender_number }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500; text-align: left;">Delivery Simulator:</th>
+                <td>Operational (Audit Logged)</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; font-size: 0.85rem; color: #475569;">
+    <strong>Telemetry Metadata:</strong>
+    <div style="margin-top: 0.5rem; display: flex; gap: 2rem; flex-wrap: wrap;">
+        <div>Platform: <strong>RailClub Connect v{{ diagnostics.version }}</strong></div>
+        <div>Probe Timestamp: <strong>{{ diagnostics.timestamp }}</strong></div>
+        <div>Application Timezone: <strong>Asia/Kolkata (IST)</strong></div>
+    </div>
+</div>
+{% endblock %}

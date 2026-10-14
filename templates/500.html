@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}500 - Internal Server Error | {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;">
+    <div style="max-width: 520px; width: 100%; text-align: center; background: #fff; padding: 3rem 2rem; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <div style="font-size: 4rem; font-weight: 800; color: #ef4444; line-height: 1; margin-bottom: 1rem;">
+            500
+        </div>
+        <h1 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 0.75rem; color: #0f172a;">
+            System Processing Error
+        </h1>
+        <p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+            An unexpected incident occurred while processing this request. Our technical staff has been notified.
+        </p>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; margin-bottom: 2rem; font-size: 0.85rem; color: #475569; text-align: left;">
+            <strong>Immediate Assistance:</strong>
+            <div style="margin-top: 0.25rem;">Contact Institute Technical Desk: <strong>admin@railclub.in</strong></div>
+            <div>WhatsApp Helpline: <strong>{{ WHATSAPP_SENDER_NUMBER|default:"7039145304" }}</strong></div>
+        </div>
+
+        <div>
+            <a href="/" style="background: #0284c7; color: #fff; padding: 0.6rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
+                &larr; Return to Homepage
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

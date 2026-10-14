@@ -59,6 +59,7 @@
             {% if profile.is_super_admin %}
                 <li><strong>System Administration:</strong></li>
                 <li><a href="{% url 'backups:dashboard' %}">&rarr; Automated Backups &amp; Disaster Recovery</a></li>
+                <li><a href="{% url 'system_health' %}">&rarr; System Health &amp; Runtime Readiness</a></li>
             {% endif %}
         </ul>
 

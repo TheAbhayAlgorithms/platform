@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
+from django.conf import settings
 
 from members.models import Member
 from payments.models import Payment, PaymentStatus

@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfer {{ transfer.transfer_id }} | {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{% url 'transfers:list' %}" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">
+        &larr; Back to Transfers List
+    </a>
+</div>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0; font-size: 1.75rem;">Transfer {{ transfer.transfer_id }}</h1>
+            {% if transfer.status == 'PENDING' %}
+                <span style="background: #fef3c7; color: #b45309; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Pending Clearance</span>
+            {% elif transfer.status == 'APPROVED' %}
+                <span style="background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Approved (NOC Issued)</span>
+            {% elif transfer.status == 'COMPLETED' %}
+                <span style="background: #dcfce7; color: #15803d; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Finalized Completed</span>
+            {% elif transfer.status == 'REJECTED' %}
+                <span style="background: #fee2e2; color: #b91c1c; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Rejected</span>
+            {% endif %}
+
+            {% if transfer.transfer_type == 'OUTGOING' %}
+                <span style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Outgoing Transfer</span>
+            {% else %}
+                <span style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 0.3rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Incoming Transfer</span>
+            {% endif %}
+        </div>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0;">
+            Initiated on {{ transfer.created_at|date:"d M Y, H:i" }} by {{ transfer.requested_by.get_full_name|default:transfer.requested_by.username|default:"System" }}
+        </p>
+    </div>
+
+    {% if transfer.noc_number %}
+        <div>
+            <a href="{% url 'transfers:noc' transfer.transfer_id %}" target="_blank"
+               style="background: #16a34a; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem;">
+                &#128196; View Official NOC ({{ transfer.noc_number }})
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Transfer Order & Routing -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 1rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+            Transfer Order &amp; Routing
+        </h2>
+        <table style="width: 100%; font-size: 0.9rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; width: 45%;">Origin Branch:</th>
+                <td style="font-weight: 600; color: #1e293b;">
+                    {{ transfer.from_branch.name }} [{{ transfer.from_branch.code }}]
+                    <div style="font-size: 0.8rem; color: #64748b; font-weight: normal;">{{ transfer.from_branch.zone }} ({{ transfer.from_branch.city }})</div>
+                </td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Destination Branch:</th>
+                <td style="font-weight: 600; color: #1e293b;">
+                    {{ transfer.to_branch.name }} [{{ transfer.to_branch.code }}]
+                    <div style="font-size: 0.8rem; color: #64748b; font-weight: normal;">{{ transfer.to_branch.zone }} ({{ transfer.to_branch.city }})</div>
+                </td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Railway Order No:</th>
+                <td style="font-weight: 600; font-family: monospace; color: #0284c7;">{{ transfer.transfer_order_number }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Order Date:</th>
+                <td>{{ transfer.transfer_order_date|date:"d F Y" }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Effective Date:</th>
+                <td style="font-weight: 600; color: #334155;">{{ transfer.effective_date|date:"d F Y" }}</td>
+            </tr>
+            {% if transfer.remarks %}
+            <tr>
+                <th style="color: #64748b; font-weight: 500; vertical-align: top;">Remarks:</th>
+                <td style="color: #475569; white-space: pre-line;">{{ transfer.remarks }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Member Details -->
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 1rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+            Member Record
+        </h2>
+        <table style="width: 100%; font-size: 0.9rem; line-height: 1.8;">
+            <tr>
+                <th style="color: #64748b; font-weight: 500; width: 45%;">Name:</th>
+                <td style="font-weight: 600; color: #1e293b;">
+                    <a href="{% url 'members:member_detail' transfer.member.id %}" style="color: #0284c7; text-decoration: none;">
+                        {{ transfer.member.name }}
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Membership ID:</th>
+                <td style="font-family: monospace; font-weight: 600;">{{ transfer.member.membership_id }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Department:</th>
+                <td>{{ transfer.member.get_department_display }}</td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Current Status:</th>
+                <td>
+                    <span style="background: #f1f5f9; color: #334155; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        {{ transfer.member.get_status_display }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <th style="color: #64748b; font-weight: 500;">Enrolled Since:</th>
+                <td>{{ transfer.member.date_joined|date:"d-m-Y" }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Dues & Institutional Clearance Audit -->
+<div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 2rem;">
+    <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 1rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+        Financial &amp; Facility Clearance Audit
+    </h2>
+
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+        {% if transfer.dues_cleared %}
+            <span style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+                &#10004; DUES CLEAR: No outstanding financial liability
+            </span>
+        {% else %}
+            <span style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+                &#9888; OUTSTANDING DUES DETECTED: Cannot issue standard NOC without clearance or override
+            </span>
+        {% endif %}
+    </div>
+
+    <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; font-size: 0.9rem; color: #334155;">
+        <strong>Clearance Notes / Audit Trail:</strong>
+        <p style="margin: 0.5rem 0 0 0; color: #475569;">
+            {{ transfer.dues_remarks|default:"No clearance remarks recorded." }}
+        </p>
+    </div>
+
+    {% if live_clearance and not live_clearance.is_cleared %}
+        <div style="margin-top: 1rem; padding: 1rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 0.85rem; color: #92400e;">
+            <strong>Live System Check (Unresolved Items):</strong>
+            <ul style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+                {% for reason in live_clearance.reasons %}
+                    <li>{{ reason }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Workflow Action Card -->
+<div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 2rem;">
+    <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 1rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+        Workflow Actions &amp; Lifecycle Management
+    </h2>
+
+    {% if transfer.status == 'PENDING' %}
+        {% if can_approve %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <!-- Approval Form -->
+                <div style="background: #f0fdf4; padding: 1.25rem; border-radius: 6px; border: 1px solid #bbf7d0;">
+                    <h3 style="font-size: 1rem; margin-top: 0; color: #166534;">Approve Transfer &amp; Issue Digital NOC</h3>
+                    <p style="font-size: 0.85rem; color: #15803d;">
+                        Approving this request generates an official digital No Objection Certificate with a unique sequential NOC number.
+                    </p>
+                    <form method="post" action="{% url 'transfers:approve' transfer.transfer_id %}">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem;">Approval Remarks (Optional):</label>
+                            {{ approval_form.admin_remarks }}
+                        </div>
+
+                        {% if not transfer.dues_cleared %}
+                            <div style="margin-bottom: 1rem; background: #fff; padding: 0.75rem; border-radius: 4px; border: 1px solid #fca5a5;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #991b1b; font-weight: 600;">
+                                    {{ approval_form.force_override }}
+                                    Grant Authorized Clearance Override
+                                </label>
+                                <span style="font-size: 0.75rem; color: #64748b; display: block; margin-top: 0.25rem;">
+                                    Required because member has outstanding dues or pending bookings.
+                                </span>
+                            </div>
+                        {% endif %}
+
+                        <button type="submit" style="background: #16a34a; color: #fff; border: none; padding: 0.5rem 1.25rem; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            &#10004; Approve &amp; Generate Digital NOC
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Rejection Form -->
+                <div style="background: #fef2f2; padding: 1.25rem; border-radius: 6px; border: 1px solid #fecaca;">
+                    <h3 style="font-size: 1rem; margin-top: 0; color: #991b1b;">Decline / Reject Transfer</h3>
+                    <p style="font-size: 0.85rem; color: #b91c1c;">
+                        Declines the transfer request. Justification is mandatory and preserved in the audit log.
+                    </p>
+                    <form method="post" action="{% url 'transfers:reject' transfer.transfer_id %}">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem;">Rejection Reason (Required):</label>
+                            {{ rejection_form.rejection_reason }}
+                        </div>
+                        <button type="submit" style="background: #dc2626; color: #fff; border: none; padding: 0.5rem 1.25rem; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            &#10008; Decline Transfer Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p style="color: #64748b; font-size: 0.9rem;">
+                This transfer request is pending review by the Honorary Secretary or Accountant.
+            </p>
+        {% endif %}
+
+    {% elif transfer.status == 'APPROVED' %}
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: #f0fdf4; padding: 1.25rem; border-radius: 6px; border: 1px solid #bbf7d0;">
+            <div>
+                <strong style="color: #166534; font-size: 1rem;">NOC Issued: {{ transfer.noc_number }}</strong>
+                <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #15803d;">
+                    Approved on {{ transfer.actioned_at|date:"d M Y, H:i" }} by {{ transfer.actioned_by.get_full_name|default:transfer.actioned_by.username }}.
+                </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{% url 'transfers:noc' transfer.transfer_id %}" target="_blank"
+                   style="background: #0284c7; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500;">
+                    Print / Download NOC
+                </a>
+                {% if can_approve %}
+                    <form method="post" action="{% url 'transfers:complete' transfer.transfer_id %}" style="display: inline;" onsubmit="return confirm('Confirm transfer completion? This will update member standing and close this record.');">
+                        {% csrf_token %}
+                        <button type="submit" style="background: #16a34a; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            Finalize &amp; Complete Transfer
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+    {% elif transfer.status == 'COMPLETED' %}
+        <div style="background: #f8fafc; padding: 1.25rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+            <strong style="color: #1e293b;">Transfer Fully Finalized</strong>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b;">
+                Finalized on {{ transfer.actioned_at|date:"d M Y, H:i" }} by {{ transfer.actioned_by.get_full_name|default:transfer.actioned_by.username }}.
+                Member profile has been updated.
+            </p>
+            <div style="margin-top: 1rem;">
+                <a href="{% url 'transfers:noc' transfer.transfer_id %}" target="_blank"
+                   style="color: #0284c7; text-decoration: none; font-weight: 500;">
+                    &rarr; View Archived NOC Certificate
+                </a>
+            </div>
+        </div>
+
+    {% elif transfer.status == 'REJECTED' %}
+        <div style="background: #fef2f2; padding: 1.25rem; border-radius: 6px; border: 1px solid #fecaca;">
+            <strong style="color: #991b1b;">Transfer Request Declined</strong>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #b91c1c;">
+                Actioned on {{ transfer.actioned_at|date:"d M Y, H:i" }} by {{ transfer.actioned_by.get_full_name|default:transfer.actioned_by.username }}.
+            </p>
+            <div style="margin-top: 0.75rem; background: #fff; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #7f1d1d;">
+                <strong>Reason:</strong> {{ transfer.rejection_reason }}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

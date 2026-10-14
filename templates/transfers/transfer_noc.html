@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>No Objection Certificate - {{ transfer.noc_number }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 20mm;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            color: #111;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .certificate-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 45px 55px;
+            border: 2px solid #1e293b;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 70px;
+            font-weight: bold;
+            color: rgba(2, 132, 199, 0.05);
+            text-transform: uppercase;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+            letter-spacing: 5px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .railway-crest {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .institute-subhead {
+            font-size: 17px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+        .institute-addr {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .cert-title {
+            text-align: center;
+            margin: 30px 0 25px 0;
+        }
+        .cert-title h2 {
+            font-size: 20px;
+            text-decoration: underline;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 0;
+            color: #0f172a;
+        }
+        .cert-ref-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 8px;
+        }
+        .cert-body {
+            text-align: justify;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .details-table th, .details-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .details-table th {
+            background: #f8fafc;
+            width: 35%;
+            font-weight: 600;
+        }
+        .clearance-box {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            padding: 12px 18px;
+            border-radius: 4px;
+            margin: 25px 0;
+            font-size: 14px;
+            color: #14532d;
+        }
+        .footer-sig {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .sig-block {
+            text-align: center;
+            min-width: 200px;
+        }
+        .sig-line {
+            border-top: 1px solid #334155;
+            margin-top: 50px;
+            padding-top: 5px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .seal-circle {
+            width: 100px;
+            height: 100px;
+            border: 2px dashed #94a3b8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 0 auto;
+        }
+        .print-btn-bar {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn-print {
+            background: #0284c7;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .certificate-container {
+                border: 2px solid #000;
+                box-shadow: none;
+                padding: 30px;
+            }
+            .print-btn-bar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-btn-bar">
+    <button class="btn-print" onclick="window.print()">&#128424; Print / Save as PDF</button>
+</div>
+
+<div class="certificate-container">
+    <div class="watermark">INDIAN RAILWAYS INSTITUTE</div>
+
+    <div class="header">
+        <div class="railway-crest">INDIAN RAILWAYS</div>
+        <div class="institute-subhead">{{ home_branch.name|default:"RAILWAY EMPLOYEES' INSTITUTE & CLUB" }}</div>
+        <div class="institute-addr">
+            {{ home_branch.division|default:"Delhi" }} Division, {{ home_branch.zone|default:"Northern Railway" }} |
+            {{ home_branch.city|default:"New Delhi" }}
+        </div>
+    </div>
+
+    <div class="cert-title">
+        <h2>NO OBJECTION CERTIFICATE (NOC)</h2>
+        <div style="font-size: 13px; color: #475569; margin-top: 4px;">(Inter-Divisional Membership Transfer Clearance)</div>
+    </div>
+
+    <div class="cert-ref-bar">
+        <div>NOC No: <span style="font-family: monospace;">{{ transfer.noc_number }}</span></div>
+        <div>Date of Issue: {{ transfer.noc_issued_at|date:"d/m/Y"|default:printed_at|date:"d/m/Y" }}</div>
+    </div>
+
+    <div class="cert-body">
+        <p>
+            This is to formally certify that <strong>{{ transfer.member.name }}</strong>,
+            holding Institute Membership ID <strong>{{ transfer.member.membership_id }}</strong>,
+            serving under the <strong>{{ transfer.member.get_department_display }}</strong> Department,
+            is registered with this Institute.
+        </p>
+        <p>
+            Pursuant to Railway Administrative Office Order No. <strong>{{ transfer.transfer_order_number }}</strong>
+            dated <strong>{{ transfer.transfer_order_date|date:"d/m/Y" }}</strong> regarding inter-divisional transfer,
+            the member is being relieved to join the <strong>{{ transfer.to_branch.name }}</strong>
+            [{{ transfer.to_branch.zone }}] with effect from <strong>{{ transfer.effective_date|date:"d/m/Y" }}</strong>.
+        </p>
+
+        <table class="details-table">
+            <tr>
+                <th>Member Full Name:</th>
+                <td><strong>{{ transfer.member.name }}</strong></td>
+            </tr>
+            <tr>
+                <th>Membership Identifier:</th>
+                <td>{{ transfer.member.membership_id }}</td>
+            </tr>
+            <tr>
+                <th>Department / Unit:</th>
+                <td>{{ transfer.member.get_department_display }}</td>
+            </tr>
+            <tr>
+                <th>Origin Division / Institute:</th>
+                <td>{{ transfer.from_branch.name }} [{{ transfer.from_branch.code }}]</td>
+            </tr>
+            <tr>
+                <th>Destination Division / Institute:</th>
+                <td>{{ transfer.to_branch.name }} [{{ transfer.to_branch.code }}]</td>
+            </tr>
+            <tr>
+                <th>Competent Order Reference:</th>
+                <td>{{ transfer.transfer_order_number }}</td>
+            </tr>
+            <tr>
+                <th>Effective Date of Relieving:</th>
+                <td>{{ transfer.effective_date|date:"d/m/Y" }}</td>
+            </tr>
+        </table>
+
+        <div class="clearance-box">
+            <strong>&#10004; INSTITUTIONAL DUES &amp; CLEARANCE CERTIFICATION:</strong><br>
+            It is certified that all membership subscription charges, institutional loans, club facilities,
+            and community/wedding hall bookings registered in the name of the aforesaid employee have been fully settled.
+            There are NO outstanding liabilities or disciplinary encumbrances standing against this member on the date of issue of this certificate.
+        </div>
+
+        <p>
+            This Institute holds <strong>NO OBJECTION</strong> to the transfer of club membership records, privileges,
+            and entitlements to the Destination Railway Division/Institute.
+        </p>
+    </div>
+
+    <div class="footer-sig">
+        <div class="sig-block">
+            <div class="seal-circle">Official Institute Seal</div>
+        </div>
+        <div class="sig-block">
+            <div class="sig-line">
+                Honorary Secretary / Treasurer<br>
+                {{ home_branch.name|default:"Railway Employees' Institute" }}
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                Verified by: {{ transfer.actioned_by.get_full_name|default:transfer.actioned_by.username }}
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

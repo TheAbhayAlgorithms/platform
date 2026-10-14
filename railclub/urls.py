@@ -21,6 +21,7 @@ urlpatterns = [
     path('polls/', include('polls.urls')),
     path('expenses/', include('expenses.urls')),
     path('backups/', include('backups.urls')),
+    path('transfers/', include('transfers.urls')),
     path('member/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
 
 

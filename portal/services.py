@@ -142,6 +142,7 @@ def get_portal_dashboard_context(member: Member) -> Dict[str, Any]:
         'dues_info': dues_info,
         'completed_payments': completed_payments,
         'family_members': family_members,
+        'transfers': getattr(member, 'transfers', None).all().select_related('from_branch', 'to_branch').order_by('-created_at') if hasattr(member, 'transfers') else [],
         'masked_phone': mask_phone_number(member.phone),
         'whatsapp_sender': getattr(settings, 'WHATSAPP_SENDER_NUMBER', '7039145304'),
     }

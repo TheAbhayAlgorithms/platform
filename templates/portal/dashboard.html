@@ -227,6 +227,75 @@
     </div>
 </div>
 
+<!-- Inter-Divisional Transfers & NOC Section -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>Inter-Divisional Transfers &amp; NOC</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Track your railway inter-divisional transfer requests, institutional clearance status, and download official digital No Objection Certificates (NOC).
+    </p>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Transfer ID</th>
+                    <th>Route</th>
+                    <th>Type</th>
+                    <th>Order Number</th>
+                    <th>Effective Date</th>
+                    <th>Status</th>
+                    <th>Digital NOC</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trf in transfers %}
+                <tr>
+                    <td><strong>{{ trf.transfer_id }}</strong></td>
+                    <td>{{ trf.from_branch.code }} &rarr; {{ trf.to_branch.code }}</td>
+                    <td>
+                        {% if trf.transfer_type == 'OUTGOING' %}
+                            <span class="badge" style="background: #fef3c7; color: #b45309;">Outgoing</span>
+                        {% else %}
+                            <span class="badge" style="background: #e0f2fe; color: #0369a1;">Incoming</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ trf.transfer_order_number }}</td>
+                    <td>{{ trf.effective_date|date:"d-m-Y" }}</td>
+                    <td>
+                        {% if trf.status == 'PENDING' %}
+                            <span class="badge" style="background: #fef3c7; color: #b45309;">Pending Review</span>
+                        {% elif trf.status == 'APPROVED' %}
+                            <span class="badge" style="background: #e0f2fe; color: #0369a1;">Approved (NOC Issued)</span>
+                        {% elif trf.status == 'COMPLETED' %}
+                            <span class="badge" style="background: #dcfce7; color: #15803d;">Finalized</span>
+                        {% elif trf.status == 'REJECTED' %}
+                            <span class="badge" style="background: #fee2e2; color: #b91c1c;">Rejected</span>
+                        {% else %}
+                            <span class="badge">{{ trf.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if trf.noc_number %}
+                            <a href="{% url 'portal:download_noc' trf.transfer_id %}" target="_blank" class="btn btn-sm" style="background: #16a34a; color: #fff; text-decoration: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 500;">
+                                &#128196; View NOC ({{ trf.noc_number }})
+                            </a>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Pending NOC</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No inter-divisional transfer records on file.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Support Card -->
 <div class="card" style="background-color: #f8fafc; border-left: 4px solid var(--primary-color);">
     <h3 style="margin-top: 0; font-size: 1rem;">Need Help or Want to Renew Your Membership?</h3>

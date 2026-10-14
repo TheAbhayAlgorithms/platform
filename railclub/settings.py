@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'polls.apps.PollsConfig',
     'expenses.apps.ExpensesConfig',
     'backups.apps.BackupsConfig',
+    'transfers.apps.TransfersConfig',
 ]
 
 BACKUP_STORAGE_DIR = BASE_DIR / 'backups_storage'

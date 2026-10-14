@@ -157,6 +157,34 @@ def member_download_receipt(request, payment_id):
     return response
 
 
+@member_login_required
+def member_view_noc(request, transfer_id):
+    """
+    Allows a verified member to view and print their own official NOC Certificate.
+    Strictly verifies ownership to prevent IDOR vulnerabilities.
+    """
+    from transfers.models import InterDivisionalTransfer, Branch
+    from django.utils import timezone
+    member = request.portal_member
+    transfer = get_object_or_404(
+        InterDivisionalTransfer.objects.select_related('member', 'from_branch', 'to_branch', 'actioned_by'),
+        transfer_id=transfer_id,
+        member=member
+    )
+    if not transfer.noc_number:
+        messages.error(request, "No Objection Certificate has not yet been issued for this transfer.")
+        return redirect('portal:dashboard')
+
+    home_branch = Branch.objects.filter(is_home_branch=True).first()
+    context = {
+        'transfer': transfer,
+        'home_branch': home_branch,
+        'printed_at': timezone.now(),
+    }
+    return render(request, 'transfers/transfer_noc.html', context)
+
+
+
 def member_logout(request):
     """
     Logs out the member from the self-service portal.

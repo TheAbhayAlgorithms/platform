@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Railway Branches & Divisions | {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{% url 'transfers:list' %}" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">
+        &larr; Back to Transfers List
+    </a>
+</div>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin: 0; font-size: 1.75rem;">Railway Branches &amp; Divisions</h1>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0;">Directory of affiliated Indian Railway divisional institutes, clubs, and home installation.</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: {% if can_manage %}2fr 1fr{% else %}1fr{% endif %}; gap: 2rem; align-items: start;">
+    <!-- Branches Table -->
+    <div style="background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">
+                <tr>
+                    <th style="padding: 0.75rem 1rem;">Code</th>
+                    <th style="padding: 0.75rem 1rem;">Institute / Branch Name</th>
+                    <th style="padding: 0.75rem 1rem;">Zone &amp; Division</th>
+                    <th style="padding: 0.75rem 1rem;">Location</th>
+                    <th style="padding: 0.75rem 1rem;">Contact</th>
+                    <th style="padding: 0.75rem 1rem;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in branches %}
+                <tr style="border-bottom: 1px solid #f1f5f9; {% if b.is_home_branch %}background: #f0fdf4;{% endif %}">
+                    <td style="padding: 0.85rem 1rem; font-family: monospace; font-weight: 700; color: #0284c7;">
+                        {{ b.code }}
+                    </td>
+                    <td style="padding: 0.85rem 1rem;">
+                        <strong>{{ b.name }}</strong>
+                        {% if b.is_home_branch %}
+                            <span style="background: #16a34a; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem;">
+                                HOME BRANCH
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; color: #334155;">
+                        {{ b.division }}
+                        <div style="font-size: 0.75rem; color: #64748b;">{{ b.zone }}</div>
+                    </td>
+                    <td style="padding: 0.85rem 1rem; color: #334155;">
+                        {{ b.city }}, {{ b.state }}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; font-size: 0.8rem; color: #475569;">
+                        {% if b.contact_person %}<div>{{ b.contact_person }}</div>{% endif %}
+                        {% if b.contact_phone %}<div>{{ b.contact_phone }}</div>{% endif %}
+                        {% if b.contact_email %}<div style="color: #64748b;">{{ b.contact_email }}</div>{% endif %}
+                        {% if not b.contact_person and not b.contact_phone and not b.contact_email %}&mdash;{% endif %}
+                    </td>
+                    <td style="padding: 0.85rem 1rem;">
+                        {% if b.is_active %}
+                            <span style="background: #dcfce7; color: #15803d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Active</span>
+                        {% else %}
+                            <span style="background: #f1f5f9; color: #64748b; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 3rem 1rem; text-align: center; color: #94a3b8;">
+                        No railway branches or divisions registered yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Branch Form (Super Admin only) -->
+    {% if can_manage %}
+    <div style="background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 1.15rem; margin-top: 0; margin-bottom: 1rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+            Add Railway Branch / Division
+        </h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.85rem;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Branch / Institute Name *</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Branch Code (Unique) *</label>
+                    {{ form.code }}
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Railway Zone *</label>
+                    {{ form.zone }}
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Division *</label>
+                    {{ form.division }}
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">City *</label>
+                        {{ form.city }}
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">State *</label>
+                        {{ form.state }}
+                    </div>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Contact Person</label>
+                    {{ form.contact_person }}
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Phone Number</label>
+                    {{ form.contact_phone }}
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.25rem;">Email Address</label>
+                    {{ form.contact_email }}
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem;">
+                        {{ form.is_home_branch }} Home Branch
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.4rem;">
+                        {{ form.is_active }} Active
+                    </label>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <button type="submit" style="width: 100%; background: #0284c7; color: #fff; border: none; padding: 0.6rem; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                        Save Railway Branch
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

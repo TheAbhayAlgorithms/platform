@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Inter-Divisional Transfers & NOC | {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin: 0; font-size: 1.75rem;">Inter-Divisional Transfers &amp; NOC</h1>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0;">Manage railway employee inter-divisional club transfers, dues clearance audits, and digital NOC issuance.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'transfers:branches' %}" class="btn" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500;">
+            Branch Directory
+        </a>
+        <a href="{% url 'transfers:create' %}" class="btn" style="background: #0284c7; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500;">
+            + Initiate Transfer Request
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div style="background: #fff; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Total Requests</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: #0f172a; margin-top: 0.25rem;">{{ stats.total }}</div>
+    </div>
+    <div style="background: #fff; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <span style="font-size: 0.85rem; color: #d97706; font-weight: 600; text-transform: uppercase;">Pending Clearance</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: #d97706; margin-top: 0.25rem;">{{ stats.pending }}</div>
+    </div>
+    <div style="background: #fff; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <span style="font-size: 0.85rem; color: #0284c7; font-weight: 600; text-transform: uppercase;">Approved (NOC Issued)</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: #0284c7; margin-top: 0.25rem;">{{ stats.approved }}</div>
+    </div>
+    <div style="background: #fff; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <span style="font-size: 0.85rem; color: #16a34a; font-weight: 600; text-transform: uppercase;">Finalized Completed</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: #16a34a; margin-top: 0.25rem;">{{ stats.completed }}</div>
+    </div>
+</div>
+
+<!-- Filters & Search -->
+<div style="background: #fff; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <!-- Status Filter Pills -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="?status=ALL{% if search_query %}&q={{ search_query }}{% endif %}"
+           style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; font-weight: 500; {% if current_status == 'ALL' %}background: #0284c7; color: #fff;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
+            All Requests ({{ stats.total }})
+        </a>
+        <a href="?status=PENDING{% if search_query %}&q={{ search_query }}{% endif %}"
+           style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; font-weight: 500; {% if current_status == 'PENDING' %}background: #d97706; color: #fff;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
+            Pending ({{ stats.pending }})
+        </a>
+        <a href="?status=APPROVED{% if search_query %}&q={{ search_query }}{% endif %}"
+           style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; font-weight: 500; {% if current_status == 'APPROVED' %}background: #0284c7; color: #fff;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
+            Approved ({{ stats.approved }})
+        </a>
+        <a href="?status=COMPLETED{% if search_query %}&q={{ search_query }}{% endif %}"
+           style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; font-weight: 500; {% if current_status == 'COMPLETED' %}background: #16a34a; color: #fff;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
+            Completed ({{ stats.completed }})
+        </a>
+        <a href="?status=REJECTED{% if search_query %}&q={{ search_query }}{% endif %}"
+           style="padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; font-weight: 500; {% if current_status == 'REJECTED' %}background: #ef4444; color: #fff;{% else %}background: #f1f5f9; color: #475569;{% endif %}">
+            Rejected ({{ stats.rejected }})
+        </a>
+    </div>
+
+    <!-- Search Form -->
+    <form method="get" style="display: flex; gap: 0.5rem;">
+        <input type="hidden" name="status" value="{{ current_status }}">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search Member, Order No, NOC..."
+               style="padding: 0.4rem 0.8rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; min-width: 240px;">
+        <button type="submit" style="background: #0284c7; color: #fff; border: none; padding: 0.4rem 0.9rem; border-radius: 6px; font-weight: 500; cursor: pointer;">
+            Search
+        </button>
+        {% if search_query %}
+            <a href="?status={{ current_status }}" style="background: #f1f5f9; color: #475569; padding: 0.4rem 0.8rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; border: 1px solid #cbd5e1;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Table Card -->
+<div style="background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">
+            <tr>
+                <th style="padding: 0.75rem 1rem;">Transfer ID</th>
+                <th style="padding: 0.75rem 1rem;">Member</th>
+                <th style="padding: 0.75rem 1rem;">Route</th>
+                <th style="padding: 0.75rem 1rem;">Type</th>
+                <th style="padding: 0.75rem 1rem;">Order Number</th>
+                <th style="padding: 0.75rem 1rem;">Effective Date</th>
+                <th style="padding: 0.75rem 1rem;">Dues Clearance</th>
+                <th style="padding: 0.75rem 1rem;">Status</th>
+                <th style="padding: 0.75rem 1rem; text-align: right;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trf in transfers %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 0.85rem 1rem; font-family: monospace; font-weight: 600; color: #0284c7;">
+                    <a href="{% url 'transfers:detail' trf.transfer_id %}" style="color: inherit; text-decoration: none;">
+                        {{ trf.transfer_id }}
+                    </a>
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    <strong>{{ trf.member.name }}</strong>
+                    <div style="font-size: 0.75rem; color: #64748b;">ID: {{ trf.member.membership_id }} | {{ trf.member.get_department_display }}</div>
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    <div style="font-weight: 500; color: #334155;">{{ trf.from_branch.code }} &rarr; {{ trf.to_branch.code }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">{{ trf.from_branch.city }} to {{ trf.to_branch.city }}</div>
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    {% if trf.transfer_type == 'OUTGOING' %}
+                        <span style="background: #fef3c7; color: #b45309; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Outgoing</span>
+                    {% else %}
+                        <span style="background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Incoming</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    <div>{{ trf.transfer_order_number }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Dated: {{ trf.transfer_order_date|date:"d-m-Y" }}</div>
+                </td>
+                <td style="padding: 0.85rem 1rem; color: #334155;">
+                    {{ trf.effective_date|date:"d-m-Y" }}
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    {% if trf.dues_cleared %}
+                        <span style="background: #dcfce7; color: #15803d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Clear</span>
+                    {% else %}
+                        <span style="background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Pending Dues</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 0.85rem 1rem;">
+                    {% if trf.status == 'PENDING' %}
+                        <span style="background: #fef3c7; color: #b45309; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Pending</span>
+                    {% elif trf.status == 'APPROVED' %}
+                        <span style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Approved</span>
+                    {% elif trf.status == 'COMPLETED' %}
+                        <span style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Finalized</span>
+                    {% elif trf.status == 'REJECTED' %}
+                        <span style="background: #fee2e2; color: #b91c1c; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Rejected</span>
+                    {% else %}
+                        <span style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{{ trf.status }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 0.85rem 1rem; text-align: right; white-space: nowrap;">
+                    <a href="{% url 'transfers:detail' trf.transfer_id %}" style="color: #0284c7; text-decoration: none; font-weight: 500; margin-right: 0.75rem;">
+                        View
+                    </a>
+                    {% if trf.noc_number %}
+                        <a href="{% url 'transfers:noc' trf.transfer_id %}" style="color: #16a34a; text-decoration: none; font-weight: 500;" target="_blank">
+                            NOC
+                        </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="padding: 3rem 1rem; text-align: center; color: #94a3b8;">
+                    <div style="font-size: 1.1rem; font-weight: 500;">No inter-divisional transfer requests found.</div>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem;">Click "Initiate Transfer Request" above to log a new transfer order.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

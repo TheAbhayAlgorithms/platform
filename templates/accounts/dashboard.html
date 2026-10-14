@@ -52,6 +52,10 @@
             <li><a href="{% url 'notifications:log_list' %}">&rarr; WhatsApp Automation & Logs</a></li>
             <li><a href="{% url 'reports:hub' %}">&rarr; Institute Financial & Member Reports</a></li>
 
+            <li><strong>Divisional Operations:</strong></li>
+            <li><a href="{% url 'transfers:list' %}">&rarr; Inter-Divisional Transfers &amp; NOC</a></li>
+            <li><a href="{% url 'transfers:branches' %}">&rarr; Railway Branches &amp; Divisions</a></li>
+
             {% if profile.is_super_admin %}
                 <li><strong>System Administration:</strong></li>
                 <li><a href="{% url 'backups:dashboard' %}">&rarr; Automated Backups &amp; Disaster Recovery</a></li>

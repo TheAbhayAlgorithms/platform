@@ -9,5 +9,6 @@ urlpatterns = [
     path('resend-otp/', views.member_resend_otp, name='resend_otp'),
     path('dashboard/', views.member_dashboard, name='dashboard'),
     path('receipt/<int:payment_id>/download/', views.member_download_receipt, name='download_receipt'),
+    path('transfers/<str:transfer_id>/noc/', views.member_view_noc, name='download_noc'),
     path('logout/', views.member_logout, name='logout'),
 ]

@@ -18,9 +18,12 @@
                     {% if user.is_authenticated %}
                         <li><a href="{% url 'accounts:dashboard' %}">Admin Dashboard</a></li>
                         <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
+                    {% elif request.session.member_authenticated %}
+                        <li><a href="{% url 'portal:dashboard' %}">My Membership</a></li>
+                        <li><a href="{% url 'portal:logout' %}">Logout</a></li>
                     {% else %}
+                        <li><a href="{% url 'portal:login' %}">Member Portal</a></li>
                         <li><a href="{% url 'accounts:login' %}">Admin Login</a></li>
-                        <li><a href="/member/login/">Member Portal</a></li>
                     {% endif %}
                     {% endblock %}
                 </ul>

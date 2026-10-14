@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'plans.apps.PlansConfig',
     'payments.apps.PaymentsConfig',
     'renewals.apps.RenewalsConfig',
+    'portal.apps.PortalConfig',
 ]
 
 MIDDLEWARE = [

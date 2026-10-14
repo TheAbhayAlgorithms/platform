@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Portal Login - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 3rem auto;">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Member Portal</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                View your membership validity, dues balance, festival event privileges, and download official payment receipts.
+            </p>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">{{ form.phone.label|default:"Registered Mobile Number" }}</label>
+                {{ form.phone }}
+                {% if form.phone.help_text %}
+                    <span class="help-text">{{ form.phone.help_text }}</span>
+                {% endif %}
+                {% if form.phone.errors %}
+                    <span style="color: #b91c1c; font-size: 0.85rem;">{{ form.phone.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                    Send Verification OTP &rarr;
+                </button>
+            </div>
+        </form>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+            <p style="margin: 0;">
+                Are you an Institute staff member? <a href="{% url 'accounts:login' %}">Admin Login</a>
+            </p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">
+                Need assistance? WhatsApp Institute Support: <strong>{{ WHATSAPP_SENDER_NUMBER }}</strong>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

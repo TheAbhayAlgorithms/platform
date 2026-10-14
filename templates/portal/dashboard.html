@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}My Membership Dashboard - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Welcome, {{ member.name }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Membership ID: <code>{{ member.membership_id }}</code>
+            &bull; Department: <strong>{{ member.get_department_display }}</strong>
+            {% if member.status == 'ACTIVE' %}
+                <span class="badge badge-active" style="margin-left: 0.5rem;">Active Member</span>
+            {% elif member.status == 'DUE' %}
+                <span class="badge badge-due" style="margin-left: 0.5rem;">Payment Due</span>
+            {% elif member.status == 'EXPIRED' %}
+                <span class="badge badge-expired" style="margin-left: 0.5rem;">Membership Expired</span>
+            {% else %}
+                <span class="badge badge-neutral" style="margin-left: 0.5rem;">{{ member.get_status_display }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'portal:logout' %}" class="btn btn-secondary">Logout</a>
+    </div>
+</div>
+
+<!-- Key Metrics Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Plan & Validity Card -->
+    <div class="card">
+        <h2>Current Membership Plan</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 45%;">Plan Name</th>
+                <td><strong>{{ dues_info.plan_name }}</strong></td>
+            </tr>
+            {% if current_assignment %}
+            <tr>
+                <th>Validity Period</th>
+                <td>
+                    {{ current_assignment.start_date|date:"d-m-Y" }} to
+                    <strong>{{ current_assignment.end_date|date:"d-m-Y" }}</strong>
+                </td>
+            </tr>
+            <tr>
+                <th>Grace Period</th>
+                <td>
+                    {% if current_assignment.grace_period_days %}
+                        {{ current_assignment.grace_period_days }} Days (Till {{ grace_end_date|date:"d-m-Y" }})
+                    {% else %}
+                        No Grace Period
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Validity Status</th>
+                <td>
+                    {% if current_assignment.is_expired %}
+                        <span style="color: #b91c1c; font-weight: bold;">Expired</span>
+                    {% else %}
+                        <span style="color: #15803d; font-weight: bold;">Currently Valid</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="color: var(--text-muted);">No active plan assignment on record.</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Financial Dues Card -->
+    <div class="card">
+        <h2>Fee & Dues Standing</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 45%;">Total Plan Fee</th>
+                <td>₹{{ dues_info.base_fee|floatformat:2 }}</td>
+            </tr>
+            {% if dues_info.late_fee > 0 %}
+            <tr>
+                <th>Late Fee / Penalty</th>
+                <td style="color: #b91c1c;">+₹{{ dues_info.late_fee|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th>Total Paid</th>
+                <td style="color: #15803d; font-weight: 600;">₹{{ dues_info.total_paid|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <th>Outstanding Balance</th>
+                <td>
+                    {% if dues_info.balance_due > 0 %}
+                        <strong style="color: #b91c1c; font-size: 1.1rem;">₹{{ dues_info.balance_due|floatformat:2 }}</strong>
+                        <div style="font-size: 0.75rem; color: #b91c1c;">Please pay dues at the Institute Accounts office.</div>
+                    {% else %}
+                        <strong style="color: #15803d; font-size: 1.1rem;">₹0.00</strong>
+                        <div style="font-size: 0.75rem; color: #15803d;">All dues cleared in full.</div>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Member Profile Card -->
+    <div class="card">
+        <h2>Profile Details</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 45%;">Full Name</th>
+                <td>{{ member.name }}</td>
+            </tr>
+            <tr>
+                <th>Employee / PF No</th>
+                <td>{{ member.employee_id|default:"Not registered" }}</td>
+            </tr>
+            <tr>
+                <th>Registered Mobile</th>
+                <td><code>{{ masked_phone }}</code></td>
+            </tr>
+            <tr>
+                <th>Member Since</th>
+                <td>{{ member.date_joined|date:"d-m-Y" }}</td>
+            </tr>
+            <tr>
+                <th>WhatsApp Alerts</th>
+                <td>
+                    {% if member.whatsapp_opt_in %}
+                        <span style="color: #15803d;">&#x2714; Enabled</span>
+                    {% else %}
+                        <span style="color: var(--text-muted);">&#x2718; Disabled</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Official Payment Receipts Section -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>Official Payment Receipts</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Download signed PDF receipts for all membership subscriptions and payments.
+    </p>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Receipt Number</th>
+                    <th>Payment Date</th>
+                    <th>Amount Paid</th>
+                    <th>Payment Mode</th>
+                    <th>Reference / UTR</th>
+                    <th>Receipt Download</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in completed_payments %}
+                <tr>
+                    <td><strong>{{ payment.receipt_number }}</strong></td>
+                    <td>{{ payment.payment_date|date:"d-m-Y" }}</td>
+                    <td><strong>₹{{ payment.amount|floatformat:2 }}</strong></td>
+                    <td>{{ payment.get_payment_mode_display }}</td>
+                    <td style="font-size: 0.85rem; color: var(--text-muted);">
+                        {{ payment.reference_number|default:"-" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'portal:download_receipt' payment.id %}" class="btn btn-sm btn-primary">
+                            &#x1F4E5; Download PDF
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No completed payment receipts found on record.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Registered Family Dependents -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>Registered Family Dependents</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Family members registered under your membership eligible for festival and event passes.
+    </p>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dependent Name</th>
+                    <th>Relationship</th>
+                    <th>Age</th>
+                    <th>Date of Birth</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dep in family_members %}
+                <tr>
+                    <td><strong>{{ dep.name }}</strong></td>
+                    <td>{{ dep.get_relationship_display }}</td>
+                    <td>{{ dep.age|default:"-" }}</td>
+                    <td>{{ dep.date_of_birth|date:"d-m-Y"|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No family dependents registered. Please contact the Institute office to add dependents.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Support Card -->
+<div class="card" style="background-color: #f8fafc; border-left: 4px solid var(--primary-color);">
+    <h3 style="margin-top: 0; font-size: 1rem;">Need Help or Want to Renew Your Membership?</h3>
+    <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted);">
+        Please reach out to the Institute office or connect directly via WhatsApp at <strong>{{ whatsapp_sender }}</strong>.
+        Office hours: Monday to Saturday, 10:00 AM - 6:00 PM IST.
+    </p>
+</div>
+{% endblock %}

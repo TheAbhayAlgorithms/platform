@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify OTP - Member Portal - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 3rem auto;">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Enter Verification Code</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                We sent a 6-digit OTP to your registered mobile number:
+                <br><strong>{{ masked_phone }}</strong>
+            </p>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group" style="text-align: center;">
+                <label for="{{ form.otp.id_for_label }}" style="font-weight: 600;">6-Digit OTP</label>
+                {{ form.otp }}
+                {% if form.otp.help_text %}
+                    <span class="help-text" style="text-align: center; display: block; margin-top: 0.25rem;">
+                        {{ form.otp.help_text }}
+                    </span>
+                {% endif %}
+                {% if form.otp.errors %}
+                    <span style="color: #b91c1c; font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+                        {{ form.otp.errors.0 }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                    Verify & Access Portal &rarr;
+                </button>
+            </div>
+        </form>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+            <form method="post" action="{% url 'portal:resend_otp' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+                    Resend OTP
+                </button>
+            </form>
+            <a href="{% url 'portal:login' %}" style="color: var(--text-muted);">
+                Change Mobile Number
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

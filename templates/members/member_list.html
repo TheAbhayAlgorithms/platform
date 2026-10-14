@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Members Directory - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Members Directory</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Showing {{ total_count }} member record{{ total_count|pluralize }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if not user.profile.is_viewer %}
+            <a href="{% url 'members:member_create' %}" class="btn btn-primary">+ Add New Member</a>
+            <a href="{% url 'members:member_import' %}" class="btn">Bulk Import (Excel/CSV)</a>
+        {% endif %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Search & Filter Controls -->
+<div class="card" style="margin-bottom: 1.25rem;">
+    <form method="get" action="{% url 'members:member_list' %}" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+        <div style="flex: 1; min-width: 220px;">
+            <label for="id_q" style="font-size: 0.85rem;">Search by Name, Phone, or ID</label>
+            <input type="text" name="q" id="id_q" value="{{ search_query }}" placeholder="Search members..." style="width: 100%;">
+        </div>
+
+        <div style="min-width: 160px;">
+            <label for="id_status" style="font-size: 0.85rem;">Status</label>
+            <select name="status" id="id_status" style="width: 100%;">
+                <option value="">All Statuses</option>
+                {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="min-width: 180px;">
+            <label for="id_dept" style="font-size: 0.85rem;">Department</label>
+            <select name="dept" id="id_dept" style="width: 100%;">
+                <option value="">All Departments</option>
+                {% for code, label in dept_choices %}
+                    <option value="{{ code }}" {% if dept_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if user.profile.is_super_admin %}
+            <div style="display: flex; align-items: center; gap: 0.35rem; padding-bottom: 0.5rem;">
+                <input type="checkbox" name="show_removed" value="1" id="id_show_removed" {% if show_removed %}checked{% endif %}>
+                <label for="id_show_removed" style="margin: 0; font-size: 0.85rem;">Show Soft-Deleted</label>
+            </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'members:member_list' %}" class="btn">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Member List Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Membership ID</th>
+                <th>Member Name</th>
+                <th>Mobile Number</th>
+                <th>Railway Emp ID</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in page_obj %}
+            <tr {% if m.is_removed %}style="background-color: #fef2f2;"{% endif %}>
+                <td>
+                    <a href="{% url 'members:member_detail' m.id %}"><strong>{{ m.membership_id }}</strong></a>
+                </td>
+                <td>
+                    <a href="{% url 'members:member_detail' m.id %}" style="text-decoration: none; color: inherit; font-weight: 500;">
+                        {{ m.name }}
+                    </a>
+                </td>
+                <td>{{ m.phone }}</td>
+                <td>{{ m.employee_id|default:"-" }}</td>
+                <td style="font-size: 0.9rem;">{{ m.get_department_display }}</td>
+                <td>
+                    {% if m.status == 'ACTIVE' %}
+                        <span class="badge badge-active">Active</span>
+                    {% elif m.status == 'DUE' %}
+                        <span class="badge badge-due">Due</span>
+                    {% elif m.status == 'EXPIRED' %}
+                        <span class="badge badge-expired">Expired</span>
+                    {% elif m.status == 'REMOVED' %}
+                        <span class="badge badge-expired">Removed</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ m.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ m.date_joined|date:"d-m-Y" }}</td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="{% url 'members:member_detail' m.id %}">View</a>
+                        {% if not user.profile.is_viewer and not m.is_removed %}
+                            <span>|</span>
+                            <a href="{% url 'members:member_edit' m.id %}">Edit</a>
+                        {% endif %}
+                        {% if user.profile.is_super_admin and not m.is_removed %}
+                            <span>|</span>
+                            <a href="{% url 'members:member_delete' m.id %}" style="color: #dc2626;">Remove</a>
+                        {% endif %}
+                        {% if user.profile.is_super_admin and m.is_removed %}
+                            <span>|</span>
+                            <form method="post" action="{% url 'members:member_restore' m.id %}" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" style="background: none; border: none; color: #047857; cursor: pointer; text-decoration: underline; padding: 0; font-family: inherit; font-size: inherit;">
+                                    Restore
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No members found matching your search criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem;">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&dept={{ dept_filter }}&show_removed={{ show_removed|yesno:'1,0' }}" class="btn">&laquo; Previous</a>
+    {% endif %}
+
+    <span style="padding: 0.5rem 1rem; font-size: 0.9rem; color: var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&dept={{ dept_filter }}&show_removed={{ show_removed|yesno:'1,0' }}" class="btn">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

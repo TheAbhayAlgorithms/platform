@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Import Members - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Bulk Import Members</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Upload Excel (.xlsx) or CSV (.csv) containing railway employee members.</p>
+    </div>
+    <a href="{% url 'members:member_list' %}" class="btn">&larr; Back to Directory</a>
+</div>
+
+<!-- Upload Form Card -->
+<div class="card" style="max-width: 650px;">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_file">Select File (.xlsx or .csv)</label>
+            {{ form.file }}
+            {% if form.file.errors %}
+                <div class="error-text">{{ form.file.errors.0 }}</div>
+            {% endif %}
+            <p class="help-text">Columns expected: <code>name</code>, <code>phone</code>, <code>employee_id</code>, <code>department</code>, <code>address</code>, <code>status</code>.</p>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            {{ form.dry_run }}
+            <label for="id_dry_run" style="margin-bottom: 0;"><strong>Dry Run (Validate & Preview Only)</strong> — No records will be created in the database.</label>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Process File</button>
+        </div>
+    </form>
+</div>
+
+<!-- Import Report Summary (if processed) -->
+{% if report %}
+<div class="card" style="margin-top: 1.5rem;">
+    <h2>Validation & Processing Report</h2>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+        <div style="padding: 0.75rem 1rem; background-color: #f3f4f6; border-radius: 4px;">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Total Rows</div>
+            <div style="font-size: 1.35rem; font-weight: 700;">{{ report.total_rows }}</div>
+        </div>
+        <div style="padding: 0.75rem 1rem; background-color: #ecfdf5; border-radius: 4px;">
+            <div style="font-size: 0.85rem; color: #047857;">Valid Records</div>
+            <div style="font-size: 1.35rem; font-weight: 700; color: #047857;">{{ report.valid_count }}</div>
+        </div>
+        <div style="padding: 0.75rem 1rem; background-color: #fef2f2; border-radius: 4px;">
+            <div style="font-size: 0.85rem; color: #b91c1c;">Rows with Errors</div>
+            <div style="font-size: 1.35rem; font-weight: 700; color: #b91c1c;">{{ report.error_count }}</div>
+        </div>
+        {% if not report.dry_run %}
+            <div style="padding: 0.75rem 1rem; background-color: #eff6ff; border-radius: 4px;">
+                <div style="font-size: 0.85rem; color: #1d4ed8;">Created Records</div>
+                <div style="font-size: 1.35rem; font-weight: 700; color: #1d4ed8;">{{ report.created_count }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Row Errors List -->
+    {% if report.errors %}
+        <h3 style="color: #b91c1c; font-size: 1.1rem; margin-bottom: 0.75rem;">Row-by-Row Errors ({{ report.errors|length }})</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Row #</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Validation Issues</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for err in report.errors %}
+                    <tr style="background-color: #fef2f2;">
+                        <td><strong>{{ err.row }}</strong></td>
+                        <td>{{ err.name }}</td>
+                        <td>{{ err.phone }}</td>
+                        <td>
+                            <ul style="margin: 0; padding-left: 1.25rem; color: #991b1b;">
+                                {% for msg in err.errors %}
+                                    <li>{{ msg }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <!-- Preview of Valid Records -->
+    {% if report.preview %}
+        <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Sample Valid Records Preview (First 10)</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Emp ID</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Date Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in report.preview %}
+                    <tr>
+                        <td><strong>{{ rec.name }}</strong></td>
+                        <td>{{ rec.phone }}</td>
+                        <td>{{ rec.employee_id|default:"-" }}</td>
+                        <td>{{ rec.department }}</td>
+                        <td><span class="badge badge-active">{{ rec.status }}</span></td>
+                        <td>{{ rec.date_joined|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ member.name }} ({{ member.membership_id }}) - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ member.name }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Membership ID: <strong>{{ member.membership_id }}</strong>
+            {% if member.status == 'ACTIVE' %}
+                <span class="badge badge-active" style="margin-left: 0.5rem;">Active</span>
+            {% elif member.status == 'DUE' %}
+                <span class="badge badge-due" style="margin-left: 0.5rem;">Due</span>
+            {% elif member.status == 'EXPIRED' %}
+                <span class="badge badge-expired" style="margin-left: 0.5rem;">Expired</span>
+            {% elif member.status == 'REMOVED' %}
+                <span class="badge badge-expired" style="margin-left: 0.5rem;">Removed</span>
+            {% else %}
+                <span class="badge badge-neutral" style="margin-left: 0.5rem;">{{ member.get_status_display }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if not user.profile.is_viewer and not member.is_removed %}
+            <a href="{% url 'members:member_edit' member.id %}" class="btn btn-primary">Edit Profile</a>
+        {% endif %}
+        {% if user.profile.is_super_admin and not member.is_removed %}
+            <a href="{% url 'members:member_delete' member.id %}" class="btn btn-danger">Remove Member</a>
+        {% endif %}
+        <a href="{% url 'members:member_list' %}" class="btn">&larr; Back to Directory</a>
+    </div>
+</div>
+
+{% if member.is_removed %}
+    <div class="message error" style="margin-bottom: 1.25rem;">
+        <strong>Soft-Deleted Record:</strong> This member was removed on {{ member.removed_at|date:"d-m-Y H:i" }}
+        {% if member.removed_by %}by {{ member.removed_by.get_full_name|default:member.removed_by.username }}{% endif %}.
+        <br><strong>Reason:</strong> {{ member.removal_reason|default:"No reason specified." }}
+        {% if user.profile.is_super_admin %}
+            <form method="post" action="{% url 'members:member_restore' member.id %}" style="display: inline; margin-top: 0.5rem;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem;">Restore Member</button>
+            </form>
+        {% endif %}
+    </div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Profile & Contact Information -->
+    <div class="card">
+        <h2>Member Details</h2>
+        <table style="width: 100%;">
+            <tr>
+                <th style="width: 40%;">Membership ID</th>
+                <td><code>{{ member.membership_id }}</code></td>
+            </tr>
+            <tr>
+                <th>Mobile Number</th>
+                <td><strong>{{ member.phone }}</strong></td>
+            </tr>
+            <tr>
+                <th>Railway Emp / PF ID</th>
+                <td>{{ member.employee_id|default:"Not specified" }}</td>
+            </tr>
+            <tr>
+                <th>Department</th>
+                <td>{{ member.get_department_display }}</td>
+            </tr>
+            <tr>
+                <th>Date Joined</th>
+                <td>{{ member.date_joined|date:"d-m-Y" }}</td>
+            </tr>
+            <tr>
+                <th>Residential Address</th>
+                <td>{{ member.address|linebreaksbr|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>WhatsApp Opt-In</th>
+                <td>
+                    {% if member.whatsapp_opt_in %}
+                        <span class="badge badge-active">Opted In (Active)</span>
+                    {% else %}
+                        <span class="badge badge-neutral">Opted Out (No automated messages)</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Notes & Administrative Remarks -->
+    <div class="card">
+        <h2>Remarks & Audit Notes</h2>
+        {% if member.notes %}
+            <p style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ member.notes }}</p>
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 0.9rem;">No remarks recorded for this member.</p>
+        {% endif %}
+
+        <hr style="margin: 1.25rem 0; border: none; border-top: 1px solid var(--border-light);">
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+            <p>Record Created: {{ member.created_at|date:"d-m-Y H:i" }}</p>
+            <p>Last Modified: {{ member.updated_at|date:"d-m-Y H:i" }}</p>
+            <p>Data Protection: Contact details encrypted at rest using AES-256 Fernet.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Family / Dependent Members -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2>Family & Dependent Members</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">{{ family_members.count }} Dependent{{ family_members.count|pluralize }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dependent Name</th>
+                    <th>Relationship</th>
+                    <th>Date of Birth</th>
+                    <th>Contact Phone</th>
+                    <th>Notes</th>
+                    {% if not user.profile.is_viewer and not member.is_removed %}
+                        <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in family_members %}
+                <tr>
+                    <td><strong>{{ f.name }}</strong></td>
+                    <td>{{ f.get_relationship_display }}</td>
+                    <td>{{ f.date_of_birth|date:"d-m-Y"|default:"-" }}</td>
+                    <td>{{ f.phone|default:"-" }}</td>
+                    <td>{{ f.notes|default:"-" }}</td>
+                    {% if not user.profile.is_viewer and not member.is_removed %}
+                        <td>
+                            <form method="post" action="{% url 'members:member_family_delete' member.id f.id %}" style="margin: 0; display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; text-decoration: underline; font-family: inherit; font-size: inherit;" onclick="return confirm('Remove this dependent member?');">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">
+                        No dependent family members registered.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Family Member Form -->
+    {% if not user.profile.is_viewer and not member.is_removed %}
+    <div style="margin-top: 1.25rem; background-color: #f9fafb; padding: 1rem; border: 1px solid var(--border-light); border-radius: 4px;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">+ Add Dependent Family Member</h3>
+        <form method="post" action="{% url 'members:member_family_add' member.id %}" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+            {% csrf_token %}
+            <div style="flex: 1; min-width: 180px;">
+                <label for="id_name" style="font-size: 0.85rem;">Full Name</label>
+                {{ family_form.name }}
+            </div>
+            <div style="min-width: 140px;">
+                <label for="id_relationship" style="font-size: 0.85rem;">Relationship</label>
+                {{ family_form.relationship }}
+            </div>
+            <div style="min-width: 140px;">
+                <label for="id_date_of_birth" style="font-size: 0.85rem;">Date of Birth</label>
+                {{ family_form.date_of_birth }}
+            </div>
+            <div style="min-width: 140px;">
+                <label for="id_phone" style="font-size: 0.85rem;">Phone (Optional)</label>
+                {{ family_form.phone }}
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Add Dependent</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

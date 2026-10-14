@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Remove Member - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Remove Member (Soft Delete)</h1>
+    <a href="{% url 'members:member_detail' member.id %}" class="btn">&larr; Cancel</a>
+</div>
+
+<div class="card" style="max-width: 520px; border-color: #fecaca; background-color: #fffaf0;">
+    <h2 style="color: #991b1b; font-size: 1.15rem; margin-bottom: 0.5rem;">Confirm Member Removal</h2>
+    <p style="margin-bottom: 1rem; font-size: 0.95rem;">
+        You are about to remove <strong>{{ member.name }}</strong> (Membership ID: <code>{{ member.membership_id }}</code>, Phone: {{ member.phone }}).
+    </p>
+
+    <div style="background-color: #ffffff; padding: 0.75rem; border: 1px solid var(--border-light); border-radius: 4px; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
+        <strong>Note on Soft Deletion:</strong> The member's profile will be marked as Removed and excluded from active lists. All historical payment records, past festival registrations, and wedding bookings will be retained for auditing.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_reason">Mandatory Reason for Removal *</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+                <div class="error-text">{{ form.reason.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-danger">Confirm & Remove Member</button>
+            <a href="{% url 'members:member_detail' member.id %}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

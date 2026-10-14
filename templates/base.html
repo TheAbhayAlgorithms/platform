@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ INSTITUTE_NAME }}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <a href="/" class="brand-title">{{ INSTITUTE_NAME }}</a>
+            <nav>
+                <ul class="nav-links">
+                    {% block nav_links %}
+                    {% if user.is_authenticated %}
+                        <li><a href="{% url 'admin:index' %}">Admin Dashboard</a></li>
+                        <li><a href="{% url 'admin:logout' %}">Logout ({{ user.username }})</a></li>
+                    {% else %}
+                        <li><a href="/login/">Admin Login</a></li>
+                        <li><a href="/member/login/">Member Portal</a></li>
+                    {% endif %}
+                    {% endblock %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% if messages %}
+            <ul class="messages-list">
+                {% for message in messages %}
+                    <li class="message {{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-container">
+            <p>&copy; {% now "Y" %} {{ INSTITUTE_NAME }}. WhatsApp Support: {{ WHATSAPP_SENDER_NUMBER }}.</p>
+        </div>
+    </footer>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

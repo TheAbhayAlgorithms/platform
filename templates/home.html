@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Welcome to {{ INSTITUTE_NAME }}</h1>
+</div>
+
+<div class="card" style="max-width: 650px;">
+    <h2>Membership & Events Management Platform</h2>
+    <p style="margin-bottom: 1.25rem; color: var(--text-muted);">
+        A secure platform for railway employee members to view membership status, renewals, and festival events, and for institute staff to manage operations.
+    </p>
+
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="/login/" class="btn btn-primary">Admin Portal Login</a>
+        <a href="/member/login/" class="btn">Member Portal (OTP Login)</a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 650px; background-color: #f9fafb;">
+    <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem;">Important Details</h3>
+    <ul style="padding-left: 1.25rem; line-height: 1.8;">
+        <li>Official Institute WhatsApp Sender: <strong>+91 {{ WHATSAPP_SENDER_NUMBER }}</strong></li>
+        <li>Timezone: Asia/Kolkata</li>
+        <li>All sensitive employee records and contact details are encrypted at rest.</li>
+    </ul>
+</div>
+{% endblock %}

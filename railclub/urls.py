@@ -27,6 +27,9 @@ urlpatterns = [
     path('backups/', include('backups.urls')),
     path('transfers/', include('transfers.urls')),
     path('member/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
+    path('member/login/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
+    path('member-portal/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
+    path('portal/login/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
 
 
     path('', include('accounts.urls')),

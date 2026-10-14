@@ -14,8 +14,8 @@
     </p>
 
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <a href="/login/" class="btn btn-primary">Admin Portal Login</a>
-        <a href="/member/login/" class="btn">Member Portal (OTP Login)</a>
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary">Admin Portal Login</a>
+        <a href="{% url 'portal:login' %}" class="btn">Member Portal (OTP Login)</a>
     </div>
 </div>
 

@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import RoleChoices
 from accounts.decorators import admin_login_required, payment_management_required
@@ -16,11 +17,15 @@ from notifications.models import (
     WhatsAppMessageLog,
     NotificationTemplate,
     NotificationStatus,
+    ReminderMilestone,
+    ScheduledReminderRecord,
 )
 from notifications.services import (
     send_whatsapp_notification,
     process_whatsapp_webhook_payload,
 )
+from notifications.reminders import run_automated_whatsapp_reminders
+
 
 
 @admin_login_required
@@ -176,3 +181,74 @@ def whatsapp_webhook(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return HttpResponseForbidden("Method not allowed.")
+
+
+@admin_login_required
+def whatsapp_reminders_dashboard(request):
+    """
+    Staff dashboard displaying status and logs of automated scheduled WhatsApp reminders:
+    - 30d, 15d, 7d, 1d Renewal Notices
+    - In-Grace Period Notices
+    - Expired/Lapsed Notices
+    - Periodic Balance Due Reminders
+    """
+    milestone_filter = request.GET.get('milestone', '').strip()
+
+    records_qs = ScheduledReminderRecord.objects.select_related(
+        'member',
+        'plan_assignment__plan',
+        'message_log'
+    ).order_by('-dispatched_date', '-created_at')
+
+    if milestone_filter:
+        records_qs = records_qs.filter(milestone=milestone_filter)
+
+    all_records = ScheduledReminderRecord.objects.all()
+    counts = {
+        'total': all_records.count(),
+        'renewal_30d': all_records.filter(milestone=ReminderMilestone.RENEWAL_30D).count(),
+        'renewal_15d': all_records.filter(milestone=ReminderMilestone.RENEWAL_15D).count(),
+        'renewal_7d': all_records.filter(milestone=ReminderMilestone.RENEWAL_7D).count(),
+        'renewal_1d': all_records.filter(milestone=ReminderMilestone.RENEWAL_1D).count(),
+        'grace': all_records.filter(milestone=ReminderMilestone.GRACE_PERIOD).count(),
+        'expired': all_records.filter(milestone=ReminderMilestone.EXPIRED).count(),
+        'dues': all_records.filter(milestone=ReminderMilestone.PAYMENT_DUE).count(),
+    }
+
+    paginator = Paginator(records_qs, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    can_manage = False
+    profile = getattr(request.user, 'profile', None)
+    if profile and (profile.is_super_admin or profile.role == RoleChoices.ACCOUNTANT):
+        can_manage = True
+
+    context = {
+        'page_obj': page_obj,
+        'counts': counts,
+        'milestone_filter': milestone_filter,
+        'milestone_choices': ReminderMilestone.choices,
+        'can_manage': can_manage,
+        'today': timezone.now().date(),
+    }
+    return render(request, 'notifications/reminders_dashboard.html', context)
+
+
+@payment_management_required
+@require_POST
+def trigger_reminders_sweep(request):
+    """
+    Manual trigger view for staff to execute the scheduled reminder engine immediately.
+    """
+    stats = run_automated_whatsapp_reminders(as_of_date=timezone.now().date(), dry_run=False)
+
+    messages.success(
+        request,
+        f"Automated WhatsApp sweep completed: {stats['total_dispatched']} notices dispatched "
+        f"({stats['renewal_reminders_sent']} renewals, {stats['grace_reminders_sent']} grace, "
+        f"{stats['expired_reminders_sent']} expired, {stats['due_reminders_sent']} dues). "
+        f"{stats['skipped_dedup']} skipped (already sent), {stats['skipped_optout']} skipped (DPDP opt-out)."
+    )
+    return redirect('notifications:reminders_dashboard')
+

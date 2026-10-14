@@ -95,3 +95,60 @@ class WhatsAppMessageLog(models.Model):
     def __str__(self):
         target = self.member.name if self.member else "Unknown"
         return f"[{self.get_status_display()}] {self.get_template_type_display()} to {target} ({self.created_at:%d-%m-%Y %H:%M})"
+
+
+class ReminderMilestone(models.TextChoices):
+    RENEWAL_30D = 'RENEWAL_30D', 'Renewal 30 Days Before'
+    RENEWAL_15D = 'RENEWAL_15D', 'Renewal 15 Days Before'
+    RENEWAL_7D = 'RENEWAL_7D', 'Renewal 7 Days Before'
+    RENEWAL_1D = 'RENEWAL_1D', 'Renewal 1 Day Before'
+    GRACE_PERIOD = 'GRACE_PERIOD', 'In Grace Period Notice'
+    EXPIRED = 'EXPIRED', 'Expired / Overdue Notice'
+    PAYMENT_DUE = 'PAYMENT_DUE', 'Periodic Outstanding Balance Due'
+
+
+class ScheduledReminderRecord(models.Model):
+    """
+    Audit log of automated milestone reminders dispatched by background jobs.
+    Enforces de-duplication so members are never spammed twice for the same cycle milestone.
+    """
+    member = models.ForeignKey(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='scheduled_reminder_records'
+    )
+    plan_assignment = models.ForeignKey(
+        'plans.MemberPlanAssignment',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='reminder_records'
+    )
+    milestone = models.CharField(
+        max_length=30,
+        choices=ReminderMilestone.choices,
+        db_index=True
+    )
+    dispatched_date = models.DateField(default=timezone.now, db_index=True)
+    message_log = models.ForeignKey(
+        WhatsAppMessageLog,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reminder_record'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Scheduled Reminder Record"
+        verbose_name_plural = "Scheduled Reminder Records"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['member', 'milestone']),
+            models.Index(fields=['plan_assignment', 'milestone']),
+            models.Index(fields=['dispatched_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.member.name} - {self.get_milestone_display()} ({self.dispatched_date:%d-%m-%Y})"
+

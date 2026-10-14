@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block title %}Automated WhatsApp Reminders - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Automated WhatsApp Reminders</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Automated milestone scheduling (30d, 15d, 7d, 1d, Grace, Expired, Dues) with anti-spam de-duplication &amp; DPDP compliance.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        {% if can_manage %}
+        <form method="post" action="{% url 'notifications:trigger_reminders_sweep' %}" style="display: inline;" onsubmit="return confirm('Execute automated WhatsApp reminder sweep for today?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" id="btn-trigger-reminders">
+                &#9654; Run Scheduled Sweep Now
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'notifications:log_list' %}" class="btn btn-secondary">All WhatsApp Logs</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Milestone Counter Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+    <a href="?milestone=" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if not milestone_filter %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Sent</span>
+            <div style="font-size: 1.6rem; font-weight: bold; margin-top: 0.2rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?milestone=RENEWAL_30D" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'RENEWAL_30D' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.75rem; color: #0284c7; font-weight: 600; text-transform: uppercase;">30-Day Before</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #0284c7; margin-top: 0.2rem;">{{ counts.renewal_30d }}</div>
+        </div>
+    </a>
+    <a href="?milestone=RENEWAL_15D" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'RENEWAL_15D' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.75rem; color: #0284c7; font-weight: 600; text-transform: uppercase;">15-Day Before</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #0284c7; margin-top: 0.2rem;">{{ counts.renewal_15d }}</div>
+        </div>
+    </a>
+    <a href="?milestone=RENEWAL_7D" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'RENEWAL_7D' %}border-color: #ea580c; background: #fff7ed;{% endif %}">
+            <span style="font-size: 0.75rem; color: #ea580c; font-weight: 600; text-transform: uppercase;">7-Day Before</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #ea580c; margin-top: 0.2rem;">{{ counts.renewal_7d }}</div>
+        </div>
+    </a>
+    <a href="?milestone=RENEWAL_1D" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'RENEWAL_1D' %}border-color: #dc2626; background: #fef2f2;{% endif %}">
+            <span style="font-size: 0.75rem; color: #dc2626; font-weight: 600; text-transform: uppercase;">1-Day Before</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #dc2626; margin-top: 0.2rem;">{{ counts.renewal_1d }}</div>
+        </div>
+    </a>
+    <a href="?milestone=GRACE_PERIOD" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'GRACE_PERIOD' %}border-color: #b45309; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.75rem; color: #b45309; font-weight: 600; text-transform: uppercase;">Grace Period</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #b45309; margin-top: 0.2rem;">{{ counts.grace }}</div>
+        </div>
+    </a>
+    <a href="?milestone=EXPIRED" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'EXPIRED' %}border-color: #6b7280; background: #f9fafb;{% endif %}">
+            <span style="font-size: 0.75rem; color: #4b5563; font-weight: 600; text-transform: uppercase;">Expired</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #4b5563; margin-top: 0.2rem;">{{ counts.expired }}</div>
+        </div>
+    </a>
+    <a href="?milestone=PAYMENT_DUE" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 0.85rem; {% if milestone_filter == 'PAYMENT_DUE' %}border-color: #c2410c; background: #fff7ed;{% endif %}">
+            <span style="font-size: 0.75rem; color: #c2410c; font-weight: 600; text-transform: uppercase;">Payment Due</span>
+            <div style="font-size: 1.6rem; font-weight: bold; color: #c2410c; margin-top: 0.2rem;">{{ counts.dues }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Scheduled Dispatches Audit Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 style="font-size: 1.15rem; margin: 0;">Scheduled Reminder Records Audit Log</h2>
+        {% if milestone_filter %}
+        <span style="font-size: 0.9rem; color: var(--text-muted);">
+            Filtered by: <strong>{{ milestone_filter }}</strong> &bull;
+            <a href="{% url 'notifications:reminders_dashboard' %}" style="color: var(--primary-color);">Clear Filter</a>
+        </span>
+        {% endif %}
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="table-responsive">
+        <table class="table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e5e7eb; text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+                    <th style="padding: 0.75rem;">Dispatched Date</th>
+                    <th style="padding: 0.75rem;">Member</th>
+                    <th style="padding: 0.75rem;">Milestone</th>
+                    <th style="padding: 0.75rem;">Active Plan</th>
+                    <th style="padding: 0.75rem;">Delivery Status</th>
+                    <th style="padding: 0.75rem;">Message Preview</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in page_obj.object_list %}
+                <tr style="border-bottom: 1px solid #f3f4f6; font-size: 0.9rem;">
+                    <td style="padding: 0.75rem; white-space: nowrap;">
+                        <strong>{{ record.dispatched_date|date:"d M Y" }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ record.created_at|date:"H:i" }}</div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <a href="{% url 'members:detail' record.member.id %}" style="font-weight: 600; color: var(--primary-color); text-decoration: none;">
+                            {{ record.member.name }}
+                        </a>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">
+                            {{ record.member.membership_id }}
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <span class="badge" style="background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px;">
+                            {{ record.get_milestone_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if record.plan_assignment %}
+                            <span>{{ record.plan_assignment.plan.name }}</span>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                Ends: {{ record.plan_assignment.end_date|date:"d M Y" }}
+                            </div>
+                        {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if record.message_log %}
+                            {% if record.message_log.status == 'DELIVERED' or record.message_log.status == 'READ' %}
+                                <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                    {{ record.message_log.get_status_display }}
+                                </span>
+                            {% elif record.message_log.status == 'SENT' %}
+                                <span class="badge" style="background: #e0f2fe; color: #075985; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                    Sent
+                                </span>
+                            {% elif record.message_log.status == 'FAILED' %}
+                                <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                    Failed
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background: #f3f4f6; color: #374151; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                    {{ record.message_log.get_status_display }}
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">No Log</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem; max-width: 280px;">
+                        {% if record.message_log %}
+                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ record.message_log.message_body }}">
+                                {{ record.message_log.message_body|truncatechars:65 }}
+                            </span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; font-size: 0.9rem;">
+        <div>
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total records)
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if milestone_filter %}&milestone={{ milestone_filter }}{% endif %}" class="btn btn-secondary btn-sm">&larr; Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if milestone_filter %}&milestone={{ milestone_filter }}{% endif %}" class="btn btn-secondary btn-sm">Next &rarr;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No scheduled reminder records found.</p>
+        <p style="font-size: 0.9rem;">
+            Reminders will appear here after automated scheduled cron runs or when manually triggered.
+        </p>
+        {% if can_manage %}
+        <form method="post" action="{% url 'notifications:trigger_reminders_sweep' %}" style="display: inline-block; margin-top: 0.5rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Run First Sweep Now</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

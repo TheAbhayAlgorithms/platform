@@ -8,6 +8,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.test import Client
 
+from django.core.management import call_command, CommandError
+import freezegun
+
 from accounts.models import UserProfile, RoleChoices
 from members.models import Member, MemberStatus, DepartmentChoices
 from plans.models import Plan, MemberPlanAssignment
@@ -17,10 +20,14 @@ from notifications.models import (
     WhatsAppMessageLog,
     NotificationTemplate,
     NotificationStatus,
+    ReminderMilestone,
+    ScheduledReminderRecord,
 )
 from notifications.providers.mock_provider import MockWhatsAppProvider
 from notifications.providers.cloud_api_provider import CloudAPIWhatsAppProvider
+from notifications.reminders import run_automated_whatsapp_reminders
 from notifications.services import (
+
     get_whatsapp_provider,
     send_whatsapp_notification,
     process_whatsapp_webhook_payload,
@@ -401,3 +408,250 @@ class TestWhatsAppViewsAndPermissions:
             'custom_message': 'Unauthorized text'
         })
         assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+class TestAutomatedWhatsAppReminders:
+    """
+    Test suite for Module 10: Automated WhatsApp Reminders (Scheduled Milestones & Cron).
+    Covers:
+    - 30d, 15d, 7d, 1d upcoming renewal milestone detection
+    - In-grace period alerts
+    - Expired/lapsed notices
+    - Periodic payment balance due notices (14-day throttling)
+    - Anti-spam de-duplication idempotency
+    - DPDP opt-out enforcement
+    - Dry-run simulation mode
+    - Django management command (send_whatsapp_reminders)
+    - Reminders dashboard view and staff manual sweep execution
+    """
+
+    def _login_as(self, client, user):
+        client.force_login(user)
+        session = client.session
+        session['otp_verified'] = True
+        session.save()
+
+    def test_renewal_milestones_and_deduplication(self, optin_member):
+        """Tests 30d, 15d, 7d, 1d milestones and ensures idempotent de-duplication."""
+        plan = Plan.objects.create(
+            name="Milestone Plan",
+            duration_months=12,
+            fee=Decimal('2400.00'),
+            grace_period_days=15
+        )
+        # End date: 2026-11-30
+        assignment = MemberPlanAssignment.objects.create(
+            member=optin_member,
+            plan=plan,
+            start_date=date(2025, 12, 1),
+            end_date=date(2026, 11, 30),
+            base_fee=Decimal('2400.00'),
+            final_fee=Decimal('2400.00'),
+            grace_period_days=15,
+            is_current=True
+        )
+
+        # 1. 30 days before: 2026-10-31 (days_remaining = 30)
+        stats = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 31))
+        assert stats['renewal_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.RENEWAL_30D
+        ).exists()
+
+        # Idempotency check: running again on the same day skips duplicate
+        stats_repeat = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 31))
+        assert stats_repeat['renewal_reminders_sent'] == 0
+        assert stats_repeat['skipped_dedup'] >= 1
+
+        # 2. 15 days before: 2026-11-15 (days_remaining = 15)
+        stats_15 = run_automated_whatsapp_reminders(as_of_date=date(2026, 11, 15))
+        assert stats_15['renewal_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.RENEWAL_15D
+        ).exists()
+
+        # 3. 7 days before: 2026-11-23 (days_remaining = 7)
+        stats_7 = run_automated_whatsapp_reminders(as_of_date=date(2026, 11, 23))
+        assert stats_7['renewal_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.RENEWAL_7D
+        ).exists()
+
+        # 4. 1 day before: 2026-11-29 (days_remaining = 1)
+        stats_1 = run_automated_whatsapp_reminders(as_of_date=date(2026, 11, 29))
+        assert stats_1['renewal_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.RENEWAL_1D
+        ).exists()
+
+    def test_grace_period_and_expired_notices(self, optin_member):
+        """Tests automated notices during grace period and post-grace expiry."""
+        plan = Plan.objects.create(
+            name="Grace Plan",
+            duration_months=12,
+            fee=Decimal('1200.00'),
+            grace_period_days=10
+        )
+        # End date: 2026-10-10, grace period until 2026-10-20
+        assignment = MemberPlanAssignment.objects.create(
+            member=optin_member,
+            plan=plan,
+            start_date=date(2025, 10, 11),
+            end_date=date(2026, 10, 10),
+            base_fee=Decimal('1200.00'),
+            final_fee=Decimal('1200.00'),
+            grace_period_days=10,
+            is_current=True
+        )
+
+        # On 2026-10-15 (inside 10-day grace period)
+        stats_grace = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 15))
+        assert stats_grace['grace_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.GRACE_PERIOD
+        ).exists()
+
+        # Repeat on 2026-10-16 -> de-duplicated
+        stats_grace_repeat = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 16))
+        assert stats_grace_repeat['grace_reminders_sent'] == 0
+        assert stats_grace_repeat['skipped_dedup'] >= 1
+
+        # On 2026-10-25 (past grace period, status is EXPIRED)
+        optin_member.status = MemberStatus.EXPIRED
+        optin_member.save()
+
+        stats_expired = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 25))
+        assert stats_expired['expired_reminders_sent'] == 1
+        assert ScheduledReminderRecord.objects.filter(
+            plan_assignment=assignment,
+            milestone=ReminderMilestone.EXPIRED
+        ).exists()
+
+    def test_periodic_payment_due_reminder_throttling(self, optin_member):
+        """Tests that members with DUE status receive payment alerts throttled to once per 14 days."""
+        plan = Plan.objects.create(
+            name="Due Plan",
+            duration_months=12,
+            fee=Decimal('3000.00'),
+            grace_period_days=15
+        )
+        MemberPlanAssignment.objects.create(
+            member=optin_member,
+            plan=plan,
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+            base_fee=Decimal('3000.00'),
+            final_fee=Decimal('3000.00'),
+            is_current=True
+        )
+        optin_member.status = MemberStatus.DUE
+        optin_member.save()
+
+        # Day 1: Dispatches notice
+        stats_d1 = run_automated_whatsapp_reminders(as_of_date=date(2026, 5, 1))
+        assert stats_d1['due_reminders_sent'] == 1
+
+        # Day 7: Throttled (only 6 days elapsed)
+        stats_d7 = run_automated_whatsapp_reminders(as_of_date=date(2026, 5, 7))
+        assert stats_d7['due_reminders_sent'] == 0
+        assert stats_d7['skipped_dedup'] >= 1
+
+        # Day 16: 15 days elapsed -> eligible again
+        stats_d16 = run_automated_whatsapp_reminders(as_of_date=date(2026, 5, 16))
+        assert stats_d16['due_reminders_sent'] == 1
+
+    def test_dpdp_opt_out_respected_in_automated_sweep(self, optout_member):
+        """Ensures members with whatsapp_opt_in=False are completely skipped."""
+        plan = Plan.objects.create(
+            name="OptOut Plan",
+            duration_months=12,
+            fee=Decimal('1000.00'),
+            grace_period_days=15
+        )
+        MemberPlanAssignment.objects.create(
+            member=optout_member,
+            plan=plan,
+            start_date=date(2025, 11, 1),
+            end_date=date(2026, 11, 1),
+            base_fee=Decimal('1000.00'),
+            final_fee=Decimal('1000.00'),
+            is_current=True
+        )
+        # Evaluate on 30d milestone: 2026-10-02
+        stats = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 2))
+        assert stats['skipped_optout'] >= 1
+        assert not ScheduledReminderRecord.objects.filter(member=optout_member).exists()
+
+    def test_dry_run_simulation_mode(self, optin_member):
+        """Tests dry-run mode computes stats without saving DB records or logs."""
+        plan = Plan.objects.create(
+            name="DryRun Plan",
+            duration_months=12,
+            fee=Decimal('1000.00'),
+            grace_period_days=15
+        )
+
+        MemberPlanAssignment.objects.create(
+            member=optin_member,
+            plan=plan,
+            start_date=date(2025, 11, 1),
+            end_date=date(2026, 11, 1),
+            base_fee=Decimal('1000.00'),
+            final_fee=Decimal('1000.00'),
+            is_current=True
+        )
+
+
+        initial_records_count = ScheduledReminderRecord.objects.count()
+        initial_logs_count = WhatsAppMessageLog.objects.count()
+
+        stats = run_automated_whatsapp_reminders(as_of_date=date(2026, 10, 2), dry_run=True)
+        assert stats['dry_run'] is True
+        assert stats['renewal_reminders_sent'] == 1
+
+        # DB must remain untouched
+        assert ScheduledReminderRecord.objects.count() == initial_records_count
+        assert WhatsAppMessageLog.objects.count() == initial_logs_count
+
+    def test_send_whatsapp_reminders_management_command(self):
+        """Tests CLI invocation with --dry-run and --date arguments."""
+        # 1. Dry run
+        call_command('send_whatsapp_reminders', '--dry-run')
+
+        # 2. Specific date
+        call_command('send_whatsapp_reminders', '--date', '2026-10-14')
+
+        # 3. Invalid date raises error
+        with pytest.raises(CommandError):
+            call_command('send_whatsapp_reminders', '--date', 'invalid-date-format')
+
+    def test_reminders_dashboard_and_permissions(self, client, viewer_user, accountant_user, superadmin_user, optin_member):
+        """Tests dashboard access, filtering, and manual sweep trigger permissions."""
+        # 1. Viewer can view dashboard
+        self._login_as(client, viewer_user)
+        resp = client.get(reverse('notifications:reminders_dashboard'))
+        assert resp.status_code == 200
+        assert "Automated WhatsApp Reminders" in resp.content.decode()
+
+        # 2. Viewer cannot trigger manual sweep
+        resp_trigger = client.post(reverse('notifications:trigger_reminders_sweep'))
+        assert resp_trigger.status_code == 403
+
+        # 3. Accountant can trigger manual sweep
+        self._login_as(client, accountant_user)
+        resp_acct = client.post(reverse('notifications:trigger_reminders_sweep'))
+        assert resp_acct.status_code in [302, 303]
+        assert resp_acct.url == reverse('notifications:reminders_dashboard')
+
+        # 4. Super Admin can trigger manual sweep
+        self._login_as(client, superadmin_user)
+        resp_admin = client.post(reverse('notifications:trigger_reminders_sweep'))
+        assert resp_admin.status_code in [302, 303]
+        assert resp_admin.url == reverse('notifications:reminders_dashboard')
+

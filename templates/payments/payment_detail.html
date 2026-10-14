@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Receipt {{ payment.receipt_number }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Receipt: {{ payment.receipt_number }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Member: <strong>{{ payment.member.name }}</strong> (<code>{{ payment.member.membership_id }}</code>)
+            {% if payment.status == 'COMPLETED' %}
+                <span class="badge badge-active" style="margin-left: 0.5rem;">Completed</span>
+            {% elif payment.status == 'CANCELLED' %}
+                <span class="badge badge-expired" style="margin-left: 0.5rem;">Cancelled</span>
+            {% elif payment.status == 'REFUNDED' %}
+                <span class="badge badge-due" style="margin-left: 0.5rem;">Refunded</span>
+            {% endif %}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'payments:receipt_pdf' payment.id %}" target="_blank" class="btn btn-primary">&darr; Download PDF Receipt</a>
+        {% if not payment.is_cancelled and user.profile.can_manage_payments %}
+            <a href="{% url 'payments:payment_adjustment' payment.id %}" class="btn">+ Add Adjustment / Refund</a>
+            <a href="{% url 'payments:payment_cancel' payment.id %}" class="btn btn-danger">Cancel Payment</a>
+        {% endif %}
+        <a href="{% url 'payments:payment_list' %}" class="btn">&larr; Back to Payments</a>
+    </div>
+</div>
+
+{% if payment.is_cancelled %}
+<div class="message error" style="margin-bottom: 1.25rem;">
+    <strong>Cancelled Transaction:</strong> This receipt was revoked on {{ payment.cancelled_at|date:"d-m-Y H:i" }}
+    {% if payment.cancelled_by %}by {{ payment.cancelled_by.get_full_name|default:payment.cancelled_by.username }}{% endif %}.
+    <br><strong>Cancellation Audit Reason:</strong> {{ payment.cancellation_reason }}
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Transaction Details -->
+    <div class="card">
+        <h2>Transaction Information</h2>
+        <table style="width: 100%;">
+            <tr>
+                <th style="width: 40%;">Receipt Number</th>
+                <td><code>{{ payment.receipt_number }}</code></td>
+            </tr>
+            <tr>
+                <th>Amount Collected</th>
+                <td><strong style="font-size: 1.15rem; color: #047857;">₹{{ payment.amount|floatformat:2 }}</strong></td>
+            </tr>
+            <tr>
+                <th>Payment Date</th>
+                <td>{{ payment.payment_date|date:"d-m-Y" }}</td>
+            </tr>
+            <tr>
+                <th>Payment Mode</th>
+                <td><span class="badge badge-neutral">{{ payment.get_payment_mode_display }}</span></td>
+            </tr>
+            <tr>
+                <th>Reference ID / UTR</th>
+                <td><code>{{ payment.reference_number|default:"-" }}</code></td>
+            </tr>
+            <tr>
+                <th>Collected By</th>
+                <td>{{ payment.collected_by.get_full_name|default:payment.collected_by.username|default:"Staff" }}</td>
+            </tr>
+            <tr>
+                <th>Recorded At</th>
+                <td>{{ payment.created_at|date:"d-m-Y H:i" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Member & Plan Association -->
+    <div class="card">
+        <h2>Member & Account Summary</h2>
+        <table style="width: 100%;">
+            <tr>
+                <th style="width: 40%;">Member Name</th>
+                <td><a href="{% url 'members:member_detail' payment.member.id %}"><strong>{{ payment.member.name }}</strong></a></td>
+            </tr>
+            <tr>
+                <th>Membership ID</th>
+                <td><code>{{ payment.member.membership_id }}</code></td>
+            </tr>
+            <tr>
+                <th>Railway Emp / PF ID</th>
+                <td>{{ payment.member.employee_id|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Current Member Status</th>
+                <td>
+                    {% if payment.member.status == 'ACTIVE' %}
+                        <span class="badge badge-active">Active</span>
+                    {% elif payment.member.status == 'DUE' %}
+                        <span class="badge badge-due">Due</span>
+                    {% elif payment.member.status == 'EXPIRED' %}
+                        <span class="badge badge-expired">Expired</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ payment.member.get_status_display }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Settled Plan</th>
+                <td>{{ payment.plan_assignment.plan.name|default:"General Membership Dues" }}</td>
+            </tr>
+            <tr>
+                <th>Current Balance Due</th>
+                <td>
+                    {% if dues_info.balance_due > 0 %}
+                        <strong style="color: #b45309;">₹{{ dues_info.balance_due|floatformat:2 }}</strong>
+                    {% else %}
+                        <span style="color: #047857; font-weight: bold;">₹0.00 (Cleared)</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Financial Adjustments & Refunds -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2>Adjustments & Refunds</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">{{ adjustments.count }} Record{{ adjustments.count|pluralize }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Adjustment Type</th>
+                    <th>Amount (₹)</th>
+                    <th>Reason / Audit Explanation</th>
+                    <th>Adjusted By</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in adjustments %}
+                <tr>
+                    <td><strong>{{ a.get_adjustment_type_display }}</strong></td>
+                    <td>₹{{ a.amount|floatformat:2 }}</td>
+                    <td>{{ a.reason }}</td>
+                    <td>{{ a.adjusted_by.get_full_name|default:a.adjusted_by.username|default:"Staff" }}</td>
+                    <td style="font-size: 0.85rem;">{{ a.created_at|date:"d-m-Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">
+                        No adjustments or refunds recorded against this payment.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

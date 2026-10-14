@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancel Payment {{ payment.receipt_number }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Cancel Payment Receipt</h1>
+    <a href="{% url 'payments:payment_detail' payment.id %}" class="btn">&larr; Back to Payment</a>
+</div>
+
+<div class="card" style="max-width: 540px; border-color: #fecaca; background-color: #fffaf0;">
+    <h2 style="color: #991b1b; font-size: 1.15rem; margin-bottom: 0.5rem;">Revoke Financial Transaction</h2>
+    <p style="margin-bottom: 1rem; font-size: 0.95rem;">
+        You are about to cancel receipt <strong>{{ payment.receipt_number }}</strong> (Amount: ₹{{ payment.amount|floatformat:2 }}, Member: {{ payment.member.name }}).
+    </p>
+
+    <div style="background-color: #ffffff; padding: 0.75rem; border: 1px solid var(--border-light); border-radius: 4px; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+        <strong>Audit Warning:</strong> This transaction will be marked as CANCELLED with full audit retention. The member's outstanding balance due will be automatically restored, and member status will transition back to Due if an unpaid balance results.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_reason">Mandatory Reason for Cancellation *</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+                <div class="error-text">{{ form.reason.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+            <a href="{% url 'payments:payment_detail' payment.id %}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

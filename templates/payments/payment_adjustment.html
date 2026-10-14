@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Adjustment for {{ payment.receipt_number }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Record Payment Adjustment / Refund</h1>
+    <a href="{% url 'payments:payment_detail' payment.id %}" class="btn">&larr; Back to Payment</a>
+</div>
+
+<div class="card" style="max-width: 520px;">
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+        Receipt: <strong>{{ payment.receipt_number }}</strong> | Original Amount: <strong>₹{{ payment.amount|floatformat:2 }}</strong> | Member: <strong>{{ payment.member.name }}</strong>
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_adjustment_type">Adjustment Type *</label>
+            {{ form.adjustment_type }}
+            {% if form.adjustment_type.errors %}
+                <div class="error-text">{{ form.adjustment_type.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_amount">Adjustment Amount (₹ INR) *</label>
+            {{ form.amount }}
+            {% if form.amount.errors %}
+                <div class="error-text">{{ form.amount.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_reason">Mandatory Explanation / Justification *</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+                <div class="error-text">{{ form.reason.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Save Adjustment Record</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

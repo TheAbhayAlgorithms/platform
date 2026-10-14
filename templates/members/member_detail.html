@@ -22,8 +22,11 @@
         </p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if user.profile.can_manage_payments and not member.is_removed %}
+            <a href="{% url 'payments:payment_record' member.id %}" class="btn btn-primary">+ Record Payment</a>
+        {% endif %}
         {% if not user.profile.is_viewer and not member.is_removed %}
-            <a href="{% url 'plans:member_assign' member.id %}" class="btn btn-primary">+ Assign / Renew Plan</a>
+            <a href="{% url 'plans:member_assign' member.id %}" class="btn">+ Assign / Renew Plan</a>
             <a href="{% url 'members:member_edit' member.id %}" class="btn">Edit Profile</a>
         {% endif %}
         {% if user.profile.is_super_admin and not member.is_removed %}
@@ -243,5 +246,66 @@
         </form>
     </div>
     {% endif %}
+</div>
+
+<!-- Payment History & Official Receipts -->
+<div class="card" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2>Payment History & Official Receipts</h2>
+        {% if user.profile.can_manage_payments and not member.is_removed %}
+            <a href="{% url 'payments:payment_record' member.id %}" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">+ Record Payment</a>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Receipt No</th>
+                    <th>Date</th>
+                    <th>Amount (₹)</th>
+                    <th>Payment Mode</th>
+                    <th>Ref / UTR</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in member.payments.all %}
+                <tr {% if p.is_cancelled %}style="background-color: #fef2f2;"{% endif %}>
+                    <td>
+                        <a href="{% url 'payments:payment_detail' p.id %}"><strong>{{ p.receipt_number }}</strong></a>
+                    </td>
+                    <td>{{ p.payment_date|date:"d-m-Y" }}</td>
+                    <td><strong>₹{{ p.amount|floatformat:2 }}</strong></td>
+                    <td><span class="badge badge-neutral">{{ p.get_payment_mode_display }}</span></td>
+                    <td><code>{{ p.reference_number|default:"-" }}</code></td>
+                    <td>
+                        {% if p.status == 'COMPLETED' %}
+                            <span class="badge badge-active">Completed</span>
+                        {% elif p.status == 'CANCELLED' %}
+                            <span class="badge badge-expired">Cancelled</span>
+                        {% elif p.status == 'REFUNDED' %}
+                            <span class="badge badge-due">Refunded</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <a href="{% url 'payments:payment_detail' p.id %}">View</a>
+                            <span>|</span>
+                            <a href="{% url 'payments:receipt_pdf' p.id %}" target="_blank">PDF Receipt</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                        No payments recorded for this member yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

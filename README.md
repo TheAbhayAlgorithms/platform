@@ -27,12 +27,14 @@ platform/
 ├── accounts/               # Module 1: Admin authentication, 2FA OTP, roles & user management
 ├── members/                # Module 2: Member management, family dependents, bulk import, soft deletion
 ├── plans/                  # Module 3: Membership plans, validity math, concessions, fee immutability
-├── core/                   # Core shared utilities, cryptography, base models & context
+├── payments/               # Module 4: Payments, dues, PDF receipts, cancellations & refunds
+├── core/                   # Core shared utilities, cryptography, number to words, base models
 ├── railclub/               # Project configuration & settings
 ├── templates/              # Server-rendered HTML templates (Clean & Minimal)
 │   ├── accounts/           # Login, OTP verification, dashboard, user management
 │   ├── members/            # Directory, member detail, add/edit, soft delete, bulk import
 │   ├── plans/              # Plans list, create/edit, concessions, member plan assignment
+│   ├── payments/           # Transactions list, record payment, receipt detail, cancel, adjust
 │   ├── base.html           # Minimal base layout
 │   └── home.html           # Landing page
 ├── static/css/             # Plain CSS styling (No heavy JS frameworks)
@@ -114,6 +116,28 @@ platform/
 
 ---
 
+## Module 4: Payments & Dues
+
+### Features Built:
+1. **Payment Collection & Recording**:
+   - Record payments: Cash, UPI / QR Code, Bank Transfer (NEFT/RTGS), Cheque.
+   - Transaction reference number tracking (UTR, Cheque number).
+   - Partial payments, running balance, and excess payment handling.
+2. **Automatic Member Status Transitions**:
+   - Automatically transitions member status from `Due` to `Active` once the full due amount is settled.
+   - If a payment is cancelled, dues are restored and member transitions back to `Due`.
+3. **PDF Receipt Generation**:
+   - Official, printable PDF receipt generated using `reportlab`.
+   - Unique sequential receipt numbers (`RCP-YYYY-XXXXX`).
+   - Institute header, member details, plan validity, and amount in numbers and Indian words (e.g., "Rupees Three Thousand Only").
+4. **Cancellation Audit & Financial Adjustments**:
+   - Payments can only be cancelled with a mandatory audit reason. The original record is preserved.
+   - Supports financial adjustments, refunds, and late fee waivers.
+5. **Role Restrictions**:
+   - Strictly restricted to `Accountant` and `Super Admin` roles. Viewers and Event Managers are read-only.
+
+---
+
 ## Getting Started
 
 ### 1. Prerequisites
@@ -140,6 +164,7 @@ python manage.py migrate
 python manage.py seed_accounts
 python manage.py seed_members
 python manage.py seed_plans
+python manage.py seed_payments
 ```
 
 ### 5. Run Automated Tests

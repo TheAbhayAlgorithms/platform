@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments & Collections - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Payments & Collections</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Showing {{ total_count }} transaction record{{ total_count|pluralize }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'members:member_list' %}" class="btn btn-primary">+ Record Member Payment</a>
+        <a href="{% url 'accounts:dashboard' %}" class="btn">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="card" style="margin-bottom: 1.25rem;">
+    <form method="get" action="{% url 'payments:payment_list' %}" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+        <div style="flex: 1; min-width: 220px;">
+            <label for="id_q" style="font-size: 0.85rem;">Search by Receipt No, Member, or Ref</label>
+            <input type="text" name="q" id="id_q" value="{{ search_query }}" placeholder="Receipt #, member name, UTR..." style="width: 100%;">
+        </div>
+
+        <div style="min-width: 160px;">
+            <label for="id_status" style="font-size: 0.85rem;">Status</label>
+            <select name="status" id="id_status" style="width: 100%;">
+                <option value="">All Statuses</option>
+                {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="min-width: 180px;">
+            <label for="id_mode" style="font-size: 0.85rem;">Payment Mode</label>
+            <select name="mode" id="id_mode" style="width: 100%;">
+                <option value="">All Modes</option>
+                {% for code, label in mode_choices %}
+                    <option value="{{ code }}" {% if mode_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'payments:payment_list' %}" class="btn">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Payment List Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Receipt No</th>
+                <th>Member Name</th>
+                <th>Amount (₹)</th>
+                <th>Mode</th>
+                <th>Reference ID</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in page_obj %}
+            <tr {% if p.is_cancelled %}style="background-color: #fef2f2;"{% endif %}>
+                <td>
+                    <a href="{% url 'payments:payment_detail' p.id %}"><strong>{{ p.receipt_number }}</strong></a>
+                </td>
+                <td>
+                    <a href="{% url 'members:member_detail' p.member.id %}" style="text-decoration: none; color: inherit; font-weight: 500;">
+                        {{ p.member.name }}
+                    </a>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ p.member.membership_id }}</div>
+                </td>
+                <td><strong>₹{{ p.amount|floatformat:2 }}</strong></td>
+                <td><span class="badge badge-neutral">{{ p.get_payment_mode_display }}</span></td>
+                <td><code>{{ p.reference_number|default:"-" }}</code></td>
+                <td style="font-size: 0.85rem;">{{ p.payment_date|date:"d-m-Y" }}</td>
+                <td>
+                    {% if p.status == 'COMPLETED' %}
+                        <span class="badge badge-active">Completed</span>
+                    {% elif p.status == 'CANCELLED' %}
+                        <span class="badge badge-expired">Cancelled</span>
+                    {% elif p.status == 'REFUNDED' %}
+                        <span class="badge badge-due">Refunded</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="{% url 'payments:payment_detail' p.id %}">View</a>
+                        <span>|</span>
+                        <a href="{% url 'payments:receipt_pdf' p.id %}" target="_blank">PDF</a>
+                        {% if not p.is_cancelled and user.profile.can_manage_payments %}
+                            <span>|</span>
+                            <a href="{% url 'payments:payment_cancel' p.id %}" style="color: #dc2626;">Cancel</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No payment records found matching criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.25rem;">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&mode={{ mode_filter }}" class="btn">&laquo; Previous</a>
+    {% endif %}
+
+    <span style="padding: 0.5rem 1rem; font-size: 0.9rem; color: var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&mode={{ mode_filter }}" class="btn">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

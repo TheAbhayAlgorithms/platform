@@ -31,7 +31,7 @@
             <li><a href="{% url 'members:member_list' %}">&rarr; Members Directory</a></li>
             <li><a href="{% url 'plans:plan_list' %}">&rarr; Membership Plans & Fees</a></li>
             {% if profile.can_manage_payments %}
-                <li><a href="#">&rarr; Record Payments & Dues</a> <span class="help-text">(Module 4)</span></li>
+                <li><a href="{% url 'payments:payment_list' %}">&rarr; Record Payments & Dues</a></li>
             {% endif %}
             <li><a href="#">&rarr; Renewals & Expiries</a> <span class="help-text">(Module 5)</span></li>
 

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Payment - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Record Payment</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Member: <strong>{{ member.name }}</strong> (<code>{{ member.membership_id }}</code>, Phone: {{ member.phone }})
+        </p>
+    </div>
+    <a href="{% url 'members:member_detail' member.id %}" class="btn">&larr; Back to Member</a>
+</div>
+
+<!-- Dues Summary Panel -->
+<div class="card" style="max-width: 620px; background-color: #f9fafb; margin-bottom: 1.25rem;">
+    <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Current Fee & Due Calculation</h3>
+    <table style="width: 100%; font-size: 0.95rem;">
+        <tr>
+            <th style="width: 40%;">Assigned Plan</th>
+            <td>{{ dues_info.plan_name }}</td>
+        </tr>
+        <tr>
+            <th>Base Plan Fee</th>
+            <td>₹{{ dues_info.base_fee|floatformat:2 }}</td>
+        </tr>
+        {% if dues_info.late_fee > 0 %}
+            <tr style="background-color: #fef2f2;">
+                <th>Late Penalty Accrued</th>
+                <td style="color: #b91c1c; font-weight: bold;">+ ₹{{ dues_info.late_fee|floatformat:2 }}</td>
+            </tr>
+        {% endif %}
+        <tr>
+            <th>Total Amount Due</th>
+            <td><strong>₹{{ dues_info.total_due|floatformat:2 }}</strong></td>
+        </tr>
+        <tr>
+            <th>Total Already Paid</th>
+            <td>₹{{ dues_info.total_paid|floatformat:2 }}</td>
+        </tr>
+        <tr style="background-color: #ffffff; border-top: 2px solid var(--border-color);">
+            <th><strong>Outstanding Balance Due</strong></th>
+            <td>
+                {% if dues_info.balance_due > 0 %}
+                    <span style="color: #b45309; font-size: 1.15rem; font-weight: bold;">₹{{ dues_info.balance_due|floatformat:2 }}</span>
+                {% else %}
+                    <span style="color: #047857; font-weight: bold;">Fully Cleared (₹0.00)</span>
+                    {% if dues_info.excess_paid > 0 %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">(Excess Paid: ₹{{ dues_info.excess_paid|floatformat:2 }})</span>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- Payment Form -->
+<div class="card" style="max-width: 620px;">
+    <h2>Payment Entry</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_amount">Payment Amount (₹ INR) *</label>
+            {{ form.amount }}
+            <p class="help-text">Partial payments accepted. Excess payments will be recorded as advance credit.</p>
+            {% if form.amount.errors %}
+                <div class="error-text">{{ form.amount.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="id_payment_date">Payment Date *</label>
+                {{ form.payment_date }}
+                {% if form.payment_date.errors %}
+                    <div class="error-text">{{ form.payment_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_payment_mode">Payment Mode *</label>
+                {{ form.payment_mode }}
+                {% if form.payment_mode.errors %}
+                    <div class="error-text">{{ form.payment_mode.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="id_reference_number">Transaction Reference / UTR / Cheque Number</label>
+            {{ form.reference_number }}
+            <p class="help-text">Mandatory for UPI, Bank Transfer, and Cheque.</p>
+            {% if form.reference_number.errors %}
+                <div class="error-text">{{ form.reference_number.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_notes">Accounting Notes / Remarks</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+                <div class="error-text">{{ form.notes.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Generate Receipt & Record Payment</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

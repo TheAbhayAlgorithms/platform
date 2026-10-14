@@ -19,11 +19,13 @@ class MemberPhoneLoginForm(forms.Form):
     )
 
     def clean_phone(self):
-        raw_phone = self.cleaned_data.get('phone')
+        raw_input = (self.cleaned_data.get('phone') or '').strip()
+        if raw_input.upper().startswith('RC-'):
+            return raw_input.upper()
         try:
-            return normalize_phone(raw_phone)
+            return normalize_phone(raw_input)
         except ValidationError:
-            raise forms.ValidationError("Please enter a valid 10-digit Indian mobile number.")
+            raise forms.ValidationError("Please enter a valid 10-digit Indian mobile number or Membership ID.")
 
 
 class MemberOTPVerifyForm(forms.Form):

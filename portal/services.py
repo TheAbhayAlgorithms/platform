@@ -22,13 +22,41 @@ def request_portal_otp(raw_phone: str) -> Tuple[bool, Optional[str], Optional[Me
     if not raw_phone or not raw_phone.strip():
         return False, "Please enter your registered 10-digit mobile number.", None, None
 
-    try:
-        normalized = normalize_phone(raw_phone.strip())
-    except ValidationError as e:
-        return False, "Invalid mobile number format. Please enter a valid 10-digit Indian mobile number.", None, None
+    clean_input = raw_phone.strip()
+    member = None
+    phone_bindex = None
 
-    phone_bindex = compute_blind_index(normalized)
-    member = Member.objects.active_records().filter(phone_blind_index=phone_bindex).first()
+    # 1. Check if user provided Membership ID (e.g. RC-2026-00009)
+    if clean_input.upper().startswith('RC-'):
+        member = Member.objects.active_records().filter(membership_id__iexact=clean_input).first()
+        if member:
+            normalized = member.phone
+            phone_bindex = member.phone_blind_index
+
+    # 2. Try normalizing as Indian mobile number
+    if not member:
+        try:
+            normalized = normalize_phone(clean_input)
+            phone_bindex = compute_blind_index(normalized)
+            member = Member.objects.active_records().filter(phone_blind_index=phone_bindex).first()
+        except ValidationError:
+            normalized = None
+
+    # 3. Resilient fallback across active members (handles any salt/encryption mismatch)
+    if not member and normalized:
+        last10 = normalized[-10:]
+        for candidate in Member.objects.active_records().all():
+            try:
+                candidate_phone = candidate.phone
+                if candidate_phone and (candidate_phone == normalized or candidate_phone.endswith(last10)):
+                    member = candidate
+                    # Auto self-heal blind index with active salt
+                    if phone_bindex and candidate.phone_blind_index != phone_bindex:
+                        candidate.phone_blind_index = phone_bindex
+                        candidate.save(update_fields=['phone_blind_index'])
+                    break
+            except Exception:
+                continue
 
     if not member:
         return (

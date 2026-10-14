@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Send WhatsApp Alert - {{ member.name }} - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Send WhatsApp Message</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Recipient: <strong>{{ member.name }}</strong> (ID: <code>{{ member.membership_id }}</code>)
+            &bull; Mobile: <code>{{ member.phone }}</code>
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'members:member_detail' member.id %}" class="btn">&larr; Member Profile</a>
+        <a href="{% url 'notifications:log_list' %}" class="btn btn-secondary">&larr; WhatsApp Logs</a>
+    </div>
+</div>
+
+{% if not member.whatsapp_opt_in %}
+    <div class="message warning" style="margin-bottom: 1.25rem;">
+        <strong>DPDP Consent Alert:</strong> This member has opted out of WhatsApp automated notifications (<code>whatsapp_opt_in=False</code>).
+        Sending automated marketing or non-critical messages to this member will be logged as <strong>OPTED_OUT</strong> in compliance with the Digital Personal Data Protection Act.
+    </div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: flex-start;">
+    <!-- Member Details Card -->
+    <div class="card">
+        <h2>Recipient Details</h2>
+        <table style="width: 100%; font-size: 0.9rem;">
+            <tr>
+                <th style="width: 40%;">Member Name</th>
+                <td><strong>{{ member.name }}</strong></td>
+            </tr>
+            <tr>
+                <th>Membership ID</th>
+                <td><code>{{ member.membership_id }}</code></td>
+            </tr>
+            <tr>
+                <th>Department</th>
+                <td>{{ member.get_department_display }}</td>
+            </tr>
+            <tr>
+                <th>Mobile Number</th>
+                <td><code>{{ member.phone }}</code></td>
+            </tr>
+            <tr>
+                <th>WhatsApp Opt-in</th>
+                <td>
+                    {% if member.whatsapp_opt_in %}
+                        <span class="badge badge-active">Opted In</span>
+                    {% else %}
+                        <span class="badge badge-due">Opted Out (DPDP)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Current Status</th>
+                <td>
+                    {% if member.status == 'ACTIVE' %}
+                        <span class="badge badge-active">Active</span>
+                    {% elif member.status == 'DUE' %}
+                        <span class="badge badge-due">Payment Due</span>
+                    {% elif member.status == 'EXPIRED' %}
+                        <span class="badge badge-expired">Expired</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ member.get_status_display }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Manual Dispatch Form -->
+    <div class="card">
+        <h2>Compose WhatsApp Message</h2>
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_template_type">Select Notification Template</label>
+                <select name="template_type" id="id_template_type" class="form-control" style="width: 100%;">
+                    {% for code, label in template_choices %}
+                        <option value="{{ code }}" {% if code == 'PAYMENT_DUE' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <span class="help-text">Standard pre-approved Railway Institute message templates.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="id_custom_message">Custom Message Override (Optional)</label>
+                <textarea name="custom_message" id="id_custom_message" rows="5" class="form-control" style="width: 100%;" placeholder="Leave blank to use the standard pre-formatted template text, or type custom remarks here..."></textarea>
+                <span class="help-text">If provided, this custom text will be sent instead of the template default.</span>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary" onclick="return confirm('Send WhatsApp message to {{ member.name }} ({{ member.phone }}) from official number 7039145304?');">
+                    &#x1F4AC; Send WhatsApp Message
+                </button>
+                <a href="{% url 'notifications:log_list' %}" class="btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

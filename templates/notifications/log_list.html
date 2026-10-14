@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}WhatsApp Automation & Logs - {{ INSTITUTE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>WhatsApp Automation & Logs</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Automated alerts dispatched from official Institute number: <strong>+91-{{ sender_number }}</strong>
+            &bull; Webhook endpoint: <code>/whatsapp/webhook/</code>
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">&larr; Dashboard</a>
+    </div>
+</div>
+
+<!-- Counter Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="?status=" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if not status_filter %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Dispatched</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.total }}</div>
+        </div>
+    </a>
+    <a href="?status=SENT" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'SENT' %}border-color: var(--primary-color); background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Sent</span>
+            <div style="font-size: 1.75rem; font-weight: bold; margin-top: 0.25rem;">{{ counts.sent }}</div>
+        </div>
+    </a>
+    <a href="?status=DELIVERED" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'DELIVERED' %}border-color: #15803d; background: #f0fdf4;{% endif %}">
+            <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Delivered</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #15803d; margin-top: 0.25rem;">{{ counts.delivered }}</div>
+        </div>
+    </a>
+    <a href="?status=READ" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'READ' %}border-color: #0284c7; background: #f0f9ff;{% endif %}">
+            <span style="font-size: 0.85rem; color: #0284c7; font-weight: 600;">Read</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #0284c7; margin-top: 0.25rem;">{{ counts.read }}</div>
+        </div>
+    </a>
+    <a href="?status=FAILED" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'FAILED' %}border-color: #ef4444; background: #fef2f2;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b91c1c; font-weight: 600;">Failed</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b91c1c; margin-top: 0.25rem;">{{ counts.failed }}</div>
+        </div>
+    </a>
+    <a href="?status=OPTED_OUT" style="text-decoration: none; color: inherit;">
+        <div class="card" style="text-align: center; padding: 1rem; {% if status_filter == 'OPTED_OUT' %}border-color: #f59e0b; background: #fffbeb;{% endif %}">
+            <span style="font-size: 0.85rem; color: #b45309; font-weight: 600;">Opted Out (DPDP)</span>
+            <div style="font-size: 1.75rem; font-weight: bold; color: #b45309; margin-top: 0.25rem;">{{ counts.opted_out }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card" style="margin-bottom: 1.25rem;">
+    <form method="get" action="{% url 'notifications:log_list' %}" style="margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+        <div style="flex: 1; min-width: 220px;">
+            <label for="id_q" style="font-size: 0.85rem;">Search Member Name, ID, Mobile, or WAMID</label>
+            <input type="text" name="q" id="id_q" value="{{ search_query }}" placeholder="Member name, phone, wamid..." style="width: 100%;">
+        </div>
+
+        <div style="min-width: 180px;">
+            <label for="id_status" style="font-size: 0.85rem;">Delivery Status</label>
+            <select name="status" id="id_status" style="width: 100%;">
+                <option value="">All Statuses</option>
+                {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="min-width: 220px;">
+            <label for="id_template" style="font-size: 0.85rem;">Template Type</label>
+            <select name="template" id="id_template" style="width: 100%;">
+                <option value="">All Templates</option>
+                {% for code, label in template_choices %}
+                    <option value="{{ code }}" {% if template_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'notifications:log_list' %}" class="btn">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Log Entries Table -->
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Dispatched At</th>
+                <th>Member</th>
+                <th>Template</th>
+                <th>Recipient Mobile</th>
+                <th>Message Content</th>
+                <th>Status</th>
+                <th>Delivery WAMID</th>
+                {% if can_manage %}
+                    <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in page_obj %}
+            <tr {% if log.status == 'FAILED' %}style="background-color: #fef2f2;"{% elif log.status == 'OPTED_OUT' %}style="background-color: #fffbeb;"{% endif %}>
+                <td style="font-size: 0.85rem; white-space: nowrap;">
+                    {{ log.created_at|date:"d-m-Y H:i" }}
+                    {% if log.delivered_at %}
+                        <div style="font-size: 0.75rem; color: #15803d;">Delivered: {{ log.delivered_at|date:"H:i" }}</div>
+                    {% endif %}
+                    {% if log.read_at %}
+                        <div style="font-size: 0.75rem; color: #0284c7;">Read: {{ log.read_at|date:"H:i" }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if log.member %}
+                        <a href="{% url 'members:member_detail' log.member.id %}">
+                            <strong>{{ log.member.name }}</strong>
+                        </a>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">
+                            {{ log.member.membership_id }}
+                        </div>
+                    {% else %}
+                        <span style="color: var(--text-muted);">Unlinked Member</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.85rem;">
+                    <span class="badge badge-neutral">{{ log.get_template_type_display }}</span>
+                </td>
+                <td style="font-size: 0.85rem;">
+                    <code>{{ log.recipient_phone }}</code>
+                </td>
+                <td style="max-width: 320px; font-size: 0.85rem;">
+                    <div style="white-space: pre-wrap; word-break: break-word; max-height: 80px; overflow-y: auto; background: #f8fafc; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 3px;">{{ log.message_body }}</div>
+                    {% if log.error_message %}
+                        <div style="color: #b91c1c; font-size: 0.75rem; margin-top: 0.25rem;">
+                            <strong>Error:</strong> {{ log.error_message }}
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if log.status == 'SENT' %}
+                        <span class="badge badge-neutral">Sent</span>
+                    {% elif log.status == 'DELIVERED' %}
+                        <span class="badge badge-active">Delivered</span>
+                    {% elif log.status == 'READ' %}
+                        <span class="badge badge-active" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">Read</span>
+                    {% elif log.status == 'FAILED' %}
+                        <span class="badge badge-expired">Failed</span>
+                    {% elif log.status == 'OPTED_OUT' %}
+                        <span class="badge badge-due">Opted Out</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ log.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.75rem;">
+                    {% if log.external_message_id %}
+                        <code>{{ log.external_message_id|truncatechars:18 }}</code>
+                        <div style="color: var(--text-muted);">Engine: {{ log.provider }}</div>
+                    {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                    {% endif %}
+                </td>
+                {% if can_manage %}
+                <td>
+                    {% if log.status == 'FAILED' and log.member %}
+                        <form method="post" action="{% url 'notifications:retry_message' log.id %}" style="display: inline; margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-primary" title="Retry sending notification">
+                                Retry
+                            </button>
+                        </form>
+                    {% elif log.member %}
+                        <a href="{% url 'notifications:send_manual' log.member.id %}" class="btn btn-sm" title="Send new WhatsApp alert">
+                            Send New
+                        </a>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if can_manage %}8{% else %}7{% endif %}" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No WhatsApp notification records match the selected criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+    {% if page_obj.has_previous %}
+        <a href="?page=1&status={{ status_filter }}&template={{ template_filter }}&q={{ search_query }}" class="btn">&laquo; First</a>
+        <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&template={{ template_filter }}&q={{ search_query }}" class="btn">&larr; Prev</a>
+    {% endif %}
+
+    <span style="font-size: 0.9rem; color: var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&template={{ template_filter }}&q={{ search_query }}" class="btn">Next &rarr;</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}&status={{ status_filter }}&template={{ template_filter }}&q={{ search_query }}" class="btn">Last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -14,6 +14,7 @@ urlpatterns = [
     path('plans/', include('plans.urls')),
     path('members/', include('members.urls')),
     path('portal/', include('portal.urls')),
+    path('whatsapp/', include('notifications.urls')),
     path('member/', RedirectView.as_view(pattern_name='portal:login', permanent=False)),
     path('', include('accounts.urls')),
     path('django-admin/', admin.site.urls),

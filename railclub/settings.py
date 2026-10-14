@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'payments.apps.PaymentsConfig',
     'renewals.apps.RenewalsConfig',
     'portal.apps.PortalConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [

@@ -91,6 +91,18 @@ def payment_record_view(request, member_id):
                 notes=notes
             )
 
+            # Auto-dispatch WhatsApp payment receipt alert (from 7039145304)
+            try:
+                from notifications.services import send_whatsapp_notification
+                from notifications.models import NotificationTemplate
+                send_whatsapp_notification(
+                    member=member,
+                    template_type=NotificationTemplate.PAYMENT_RECEIPT,
+                    payment=payment
+                )
+            except Exception:
+                pass
+
             messages.success(
                 request,
                 f"Payment of ₹{payment.amount:,.2f} recorded successfully. Receipt No: {payment.receipt_number}."
